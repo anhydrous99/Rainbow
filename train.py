@@ -85,10 +85,10 @@ def train(env_name='PongNoFrameskip-v4',
           replay_start_size=10000,
           learning_rate=1.0e-4,
           sync_target_frames=1000,
-          epsilon_decay_last_frame=10**5,
+          epsilon_decay_last_frame=10 ** 5,
           epsilon_start=1.0,
           epsilon_final=0.02):
     env = atari_wrappers.make_env(env_name)
     net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
     tgt_net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
-    print(net.model)
+    net.model.summary()

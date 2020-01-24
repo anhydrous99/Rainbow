@@ -1,4 +1,3 @@
-import gym
 import argparse
 from train import train
 

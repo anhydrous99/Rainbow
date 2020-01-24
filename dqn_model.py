@@ -7,12 +7,16 @@ class DQN(tf.Module):
 
         self.model = tf.keras.models.Sequential([
             tf.keras.layers.Conv2D(32, 8, 4, input_shape=input_shape, activation='relu'),
+            tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Conv2D(64, 4, 2, activation='relu'),
+            tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Conv2D(64, 3, 1, activation='relu'),
+            tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Flatten(),
             tf.keras.layers.Dense(512, activation='relu'),
             tf.keras.layers.Dense(n_actions, activation='relu')
         ])
 
+    @tf.function
     def __call__(self, x):
         return self.model(x)
