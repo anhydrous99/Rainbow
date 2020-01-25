@@ -97,13 +97,16 @@ def train(env_name='PongNoFrameskip-v4',
           mean_reward_bound=19.5,
           gamma=0.99,
           batch_size=32,
-          replay_size=10000,
-          replay_start_size=10000,
-          learning_rate=1.0e-4,
-          sync_target_frames=1000,
-          epsilon_decay_last_frame=10 ** 5,
+          replay_size=1000000,
+          replay_start_size=1000000,
+          learning_rate=0.00025,
+          sync_target_frames=10000,
+          epsilon_decay_last_frame=1000000,
+          gradient_momentum=0.95,
+          squared_gradient_momentum=0.95,
+          min_squared_gradient=0.01,
           epsilon_start=1.0,
-          epsilon_final=0.02):
+          epsilon_final=0.1):
     profiler.start_profiler_server(6009)
     print(f'Training DQN on {env_name} environment')
     env = atari_wrappers.make_env(env_name)
@@ -111,7 +114,7 @@ def train(env_name='PongNoFrameskip-v4',
     tgt_net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
     net.model.summary()
 
-    if os.path.exists(f'checkpoints/{env_name}/checkpoint.index'):
+    if os.path.exists(f'checkpoints/{env_name}/checkpoint'):
         print('Loading checkpoint')
         net.model.load_weights(f'checkpoints/{env_name}/checkpoint')
         tgt_net.model.set_weights(net.model.get_weights())
@@ -120,7 +123,10 @@ def train(env_name='PongNoFrameskip-v4',
     agent = Agent(env, buffer)
     epsilon = epsilon_start
 
-    optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
+    optimizer = tf.keras.optimizers.RMSprop(learning_rate=learning_rate,
+                                            momentum=gradient_momentum,
+                                            rho=squared_gradient_momentum,
+                                            epsilon=min_squared_gradient)
     params = net.trainable_variables
     total_rewards = []
     frame_idx = 0
@@ -161,3 +167,4 @@ def train(env_name='PongNoFrameskip-v4',
             loss_t = calc_loss(batch, net, tgt_net, gamma, tape)
         gradient = tape.gradient(loss_t, params)
         optimizer.apply_gradients(zip(gradient, params))
+    return total_rewards
