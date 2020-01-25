@@ -3,6 +3,32 @@ import gym
 import cv2
 
 
+class NoopResetEnv(gym.Wrapper):
+    def __init__(self, env, noop_max=30):
+        super(NoopResetEnv, self).__init__(env)
+        self.noop_max = noop_max
+        self.override_num_noops = None
+        self.noop_action = 0
+        assert env.unwrapped.get_action_meanings()[0] == 'NOOP'
+    
+    def reset(self, **kwargs):
+        self.env.reset(**kwargs)
+        if self.override_num_noops is not None:
+            noops = self.override_num_noops
+        else:
+            noops = self.unwrapped.np_random.randint(1, self.noop_max + 1)
+        assert noops > 0
+        obs = None
+        for _ in range(noops):
+            obs, _, done, _ = self.env.step(self.noop_action)
+            if done:
+                obs = self.env.reset(**kwargs)
+        return obs
+    
+    def step(self, action):
+        return self.env.step(action)
+
+
 class FireResetEnv(gym.Wrapper):
     def __init__(self, env):
         gym.Wrapper.__init__(self, env)
@@ -48,6 +74,14 @@ class MaxAndSkipEnv(gym.Wrapper):
     def _reset(self, **kargs):
         obs = self.env.reset(**kargs)
         return obs
+
+
+class ClipRewardEnv(gym.RewardWrapper):
+    def __init__(self, env):
+        super(ClipRewardEnv, self).__init__(env)
+
+    def reward(self, reward):
+        return np.sign(reward)
 
 
 class ProcessFrame84(gym.ObservationWrapper):
@@ -110,5 +144,6 @@ def make_env(env_name):
     env = MaxAndSkipEnv(env)
     env = FireResetEnv(env)
     env = ProcessFrame84(env)
+    env = ClipRewardEnv(env)
     env = BufferWrapper(env, 4)
     return ScaledFloatFrame(env)
