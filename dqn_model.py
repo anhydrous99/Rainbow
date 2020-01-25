@@ -12,9 +12,7 @@ class DQN(tf.Module):
 
         self.model = Sequential([
             keras.layers.Conv2D(32, 8, 4, input_shape=input_shape, activation='relu'),
-            keras.layers.BatchNormalization(),
             keras.layers.Conv2D(64, 4, 2, activation='relu'),
-            keras.layers.BatchNormalization(),
             keras.layers.Conv2D(64, 3, 1, activation='relu'),
             keras.layers.Flatten(),
             keras.layers.Dense(512, activation='relu'),

@@ -1,6 +1,7 @@
 import atari_wrappers
 import dqn_model
 
+import os
 import time
 import numpy as np
 import collections
@@ -104,10 +105,16 @@ def train(env_name='PongNoFrameskip-v4',
           epsilon_start=1.0,
           epsilon_final=0.02):
     profiler.start_profiler_server(6009)
+    print(f'Training DQN on {env_name} environment')
     env = atari_wrappers.make_env(env_name)
     net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
     tgt_net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
     net.model.summary()
+
+    if os.path.exists(f'checkpoints/{env_name}/checkpoint.index'):
+        print('Loading checkpoint')
+        net.model.load_weights(f'checkpoints/{env_name}/checkpoint')
+        tgt_net.model.set_weights(net.model.get_weights())
 
     buffer = ExperienceBuffer(replay_size)
     agent = Agent(env, buffer)
@@ -135,6 +142,7 @@ def train(env_name='PongNoFrameskip-v4',
             print(f'{frame_idx}: done {len(total_rewards)} games, mean reward: {mean_reward}, eps {epsilon}, speed: {speed}')
             if best_mean_reward is None or best_mean_reward < mean_reward:
                 # Save network
+                net.model.save_weights(f'./checkpoints/{env_name}/checkpoint')
                 if best_mean_reward is not None:
                     print(f'Best mean reward updated {best_mean_reward} -> {mean_reward}, model saved')
                 best_mean_reward = mean_reward
