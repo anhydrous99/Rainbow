@@ -141,8 +141,10 @@ class ScaledFloatFrame(gym.ObservationWrapper):
 
 def make_env(env_name):
     env = gym.make(env_name)
+    env = NoopResetEnv(env)
     env = MaxAndSkipEnv(env)
-    env = FireResetEnv(env)
+    if 'FIRE' in env.unwrapped.get_action_meanings():
+        env = FireResetEnv(env)
     env = ProcessFrame84(env)
     env = ClipRewardEnv(env)
     env = BufferWrapper(env, 4)
