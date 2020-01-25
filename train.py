@@ -6,6 +6,7 @@ import numpy as np
 import collections
 
 import tensorflow as tf
+from tensorflow.python.eager import profiler
 
 Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
 
@@ -51,8 +52,8 @@ class Agent:
             state_a = np.array([self.state], copy=False)
             state_v = tf.convert_to_tensor(state_a)
             q_vals_v = net(state_v)
-            _, act_v = tf.math.reduce_max(q_vals_v, axis=1)
-            action = int(act_v.numpy())
+            act_v = tf.math.argmax(q_vals_v, axis=1)
+            action = int(act_v.numpy()[0])
 
         new_state, reward, is_done, _ = self.env.step(action)
         self.total_reward += reward
@@ -66,22 +67,29 @@ class Agent:
         return done_reward
 
 
-def calc_loss(batch, net, tgt_net, gamma):
+@tf.function
+def ll(net, tgt_net, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask):
+    net_output = net(states_t)
+    net_output = tf.gather(net_output, tf.expand_dims(actions_t, 1), batch_dims=1)
+    state_action_values = tf.squeeze(net_output, -1)
+    next_state_values = tf.math.reduce_max(tgt_net(next_states_t), axis=1)
+    state_action_values = tf.where(done_mask, tf.zeros_like(next_state_values), state_action_values)
+    next_state_values = tf.stop_gradient(next_state_values)
+
+    expected_state_action_values = next_state_values * gamma + rewards_t
+    return tf.keras.losses.MSE(expected_state_action_values, state_action_values)
+
+
+def calc_loss(batch, net, tgt_net, gamma, tape):
     states, actions, rewards, dones, next_states = batch
 
     states_t = tf.convert_to_tensor(states)
     next_states_t = tf.convert_to_tensor(next_states)
     actions_t = tf.convert_to_tensor(actions)
     rewards_t = tf.convert_to_tensor(rewards)
-    done_mask = tf.convert_to_tensor(dones, dtype=tf.uint8)
-
-    state_action_values = net(states_t).gather(1, actions_t.unsqueeze(-1)).squeeze(-1)
-    next_state_values = tgt_net(next_states_t).max(1)[0]
-    next_state_values[done_mask] = 0.0
-    next_state_values = tf.stop_gradient(next_state_values)
-
-    expected_state_action_values = next_state_values * gamma + rewards_t
-    return tf.keras.losses.MSE(expected_state_action_values, state_action_values)
+    done_mask = tf.convert_to_tensor(dones, dtype=bool)
+    tape.watch(states_t)
+    return ll(net, tgt_net, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask)
 
 
 def train(env_name='PongNoFrameskip-v4',
@@ -95,6 +103,7 @@ def train(env_name='PongNoFrameskip-v4',
           epsilon_decay_last_frame=10 ** 5,
           epsilon_start=1.0,
           epsilon_final=0.02):
+    profiler.start_profiler_server(6009)
     env = atari_wrappers.make_env(env_name)
     net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
     tgt_net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
@@ -104,7 +113,8 @@ def train(env_name='PongNoFrameskip-v4',
     agent = Agent(env, buffer)
     epsilon = epsilon_start
 
-    optimizer = tf.keras.optimizers.RMSprop(lr=learning_rate)
+    optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
+    params = net.trainable_variables
     total_rewards = []
     frame_idx = 0
     ts_frame = 0
@@ -122,10 +132,11 @@ def train(env_name='PongNoFrameskip-v4',
             ts_frame = frame_idx
             ts = time.time()
             mean_reward = np.mean(total_rewards[-100:])
-
+            print(f'{frame_idx}: done {len(total_rewards)} games, mean reward: {mean_reward}, eps {epsilon}, speed: {speed}')
             if best_mean_reward is None or best_mean_reward < mean_reward:
+                # Save network
                 if best_mean_reward is not None:
-                    pass
+                    print(f'Best mean reward updated {best_mean_reward} -> {mean_reward}, model saved')
                 best_mean_reward = mean_reward
             if mean_reward > mean_reward_bound:
                 print(f'Solved in {frame_idx} frames!')
@@ -135,12 +146,10 @@ def train(env_name='PongNoFrameskip-v4',
             continue
 
         if frame_idx % sync_target_frames == 0:
-            pass # Sync network
+            tgt_net.model.set_weights(net.model.get_weights())
 
         batch = buffer.sample(batch_size)
         with tf.GradientTape() as tape:
-            tape.watch(batch)
-            loss_t = calc_loss(batch, net, tgt_net, gamma)
-        params = net.trainable_variables
+            loss_t = calc_loss(batch, net, tgt_net, gamma, tape)
         gradient = tape.gradient(loss_t, params)
         optimizer.apply_gradients(zip(gradient, params))
