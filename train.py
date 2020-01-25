@@ -99,7 +99,7 @@ def train(env_name='PongNoFrameskip-v4',
     agent = Agent(env, buffer)
     epsilon = epsilon_start
 
-    optimizer = tf.keras.optimizers.RMSProp(lr=learning_rate)
+    optimizer = tf.keras.optimizers.RMSprop(lr=learning_rate)
     total_rewards = []
     frame_idx = 0
     ts_frame = 0

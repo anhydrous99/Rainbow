@@ -89,7 +89,7 @@ class BufferWrapper(gym.ObservationWrapper):
 
     def observation(self, observation):
         self.buffer[:, :, :-1] = self.buffer[:, :, 1:]
-        self.buffer[-1] = observation.squeeze(-1)
+        self.buffer[:, :, -1] = observation.squeeze(-1)
         return self.buffer
 
 
