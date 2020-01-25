@@ -59,7 +59,7 @@ class ProcessFrame84(gym.ObservationWrapper):
 
     @staticmethod
     def process(frame):
-        if frame.size == 210 * 210 * 3:
+        if frame.size == 210 * 160 * 3:
             img = np.reshape(frame, [210, 160, 3]).astype(np.float32)
         elif frame.size == 250 * 160 * 3:
             img = np.reshape(frame, [250, 160, 3]).astype(np.float32)
@@ -78,17 +78,18 @@ class BufferWrapper(gym.ObservationWrapper):
         self.dtype = dtype
         old_space = env.observation_space
         self.buffer = None
-        self.observation_space = gym.spaces.Box(old_space.low.repeat(n_steps, axis=0),
-                                                old_space.high.repeat(n_steps, axis=0),
+        self.n_steps = n_steps
+        self.observation_space = gym.spaces.Box(old_space.low.repeat(n_steps, axis=2),
+                                                old_space.high.repeat(n_steps, axis=2),
                                                 dtype=dtype)
 
     def reset(self):
-        self.buffer = np.zeros_like(self.observation_space.low, dtype=self.dtype)
+        self.buffer = np.zeros(self.observation_space.low.shape, dtype=self.dtype)
         return self.observation(self.env.reset())
 
     def observation(self, observation):
-        self.buffer[:-1] = self.buffer[1:]
-        self.buffer[-1] = observation
+        self.buffer[:, :, :-1] = self.buffer[:, :, 1:]
+        self.buffer[-1] = observation.squeeze(-1)
         return self.buffer
 
 

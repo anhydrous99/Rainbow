@@ -33,6 +33,7 @@ class ExperienceBuffer:
 class Agent:
     def __init__(self, env, exp_buffer):
         self.env = env
+        self.state = None
         self.total_reward = 0.0
         self.exp_buffer = exp_buffer
         self._reset()
@@ -74,7 +75,8 @@ def calc_loss(batch, net, tgt_net):
     rewards_t = tf.convert_to_tensor(rewards)
     done_mask = tf.convert_to_tensor(dones, dtype=tf.uint8)
 
-    state_action_values = net(states_t)
+    state_action_values = net(states_t).gather(1, actions_t.unsqueeze(-1)).squeeze(-1)
+    next_state_values = tgt_net(next_states_t).max(1)[0]
 
 
 def train(env_name='PongNoFrameskip-v4',
@@ -92,3 +94,14 @@ def train(env_name='PongNoFrameskip-v4',
     net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
     tgt_net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
     net.model.summary()
+
+    buffer = ExperienceBuffer(replay_size)
+    agent = Agent(env, buffer)
+    epsilon = epsilon_start
+
+    optimizer = tf.keras.optimizers.RMSProp(lr=learning_rate)
+    total_rewards = []
+    frame_idx = 0
+    ts_frame = 0
+    ts = time.time()
+    best_mean_reward = None
