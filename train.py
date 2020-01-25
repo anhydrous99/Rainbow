@@ -66,7 +66,7 @@ class Agent:
         return done_reward
 
 
-def calc_loss(batch, net, tgt_net):
+def calc_loss(batch, net, tgt_net, gamma):
     states, actions, rewards, dones, next_states = batch
 
     states_t = tf.convert_to_tensor(states)
@@ -77,6 +77,11 @@ def calc_loss(batch, net, tgt_net):
 
     state_action_values = net(states_t).gather(1, actions_t.unsqueeze(-1)).squeeze(-1)
     next_state_values = tgt_net(next_states_t).max(1)[0]
+    next_state_values[done_mask] = 0.0
+    next_state_values = tf.stop_gradient(next_state_values)
+
+    expected_state_action_values = next_state_values * gamma + rewards_t
+    return tf.keras.losses.MSE(expected_state_action_values, state_action_values)
 
 
 def train(env_name='PongNoFrameskip-v4',
@@ -105,3 +110,37 @@ def train(env_name='PongNoFrameskip-v4',
     ts_frame = 0
     ts = time.time()
     best_mean_reward = None
+
+    while True:
+        frame_idx += 1
+        epsilon = max(epsilon_final, epsilon_start - frame_idx / epsilon_decay_last_frame)
+
+        reward = agent.play_step(net, epsilon)
+        if reward is not None:
+            total_rewards.append(reward)
+            speed = (frame_idx - ts_frame) / (time.time() - ts)
+            ts_frame = frame_idx
+            ts = time.time()
+            mean_reward = np.mean(total_rewards[-100:])
+
+            if best_mean_reward is None or best_mean_reward < mean_reward:
+                if best_mean_reward is not None:
+                    pass
+                best_mean_reward = mean_reward
+            if mean_reward > mean_reward_bound:
+                print(f'Solved in {frame_idx} frames!')
+                break
+
+        if len(buffer) < replay_start_size:
+            continue
+
+        if frame_idx % sync_target_frames == 0:
+            pass # Sync network
+
+        batch = buffer.sample(batch_size)
+        with tf.GradientTape() as tape:
+            tape.watch(batch)
+            loss_t = calc_loss(batch, net, tgt_net, gamma)
+        params = net.trainable_variables
+        gradient = tape.gradient(loss_t, params)
+        optimizer.apply_gradients(zip(gradient, params))
