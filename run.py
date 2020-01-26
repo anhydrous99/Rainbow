@@ -18,6 +18,7 @@ def main():
     parser.add_argument('--min_squared_gradient', type=float, default=0.01)
     parser.add_argument('--epsilon_start', type=float, default=1.0)
     parser.add_argument('--epsilon_final', type=float, default=0.1)
+    parser.add_argument('--train_frames', type=int, default=50000000)
     args = parser.parse_args()
     env_str = args.env
     mean_reward_bound = args.mean_reward_bound
@@ -33,6 +34,7 @@ def main():
     min_squared_gradient = args.min_squared_gradient
     epsilon_start = args.epsilon_start
     epsilon_final = args.epsilon_final
+    train_frames = args.train_frames
 
     train(env_str,
           mean_reward_bound,
@@ -47,7 +49,8 @@ def main():
           squared_gradient_momentum,
           min_squared_gradient,
           epsilon_start,
-          epsilon_final)
+          epsilon_final,
+          train_frames)
 
 
 if __name__ == '__main__':
