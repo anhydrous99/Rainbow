@@ -7,6 +7,7 @@ import numpy as np
 import collections
 
 import tensorflow as tf
+from numpy_ringbuffer import RingBuffer
 from tensorflow.python.eager import profiler
 
 Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
@@ -128,8 +129,11 @@ def train(env_name='PongNoFrameskip-v4',
                                             rho=squared_gradient_momentum,
                                             epsilon=min_squared_gradient)
     params = net.trainable_variables
-    total_rewards = []
+    total_rewards = RingBuffer(capacity=100000)
+    rewards_mean_std = []
     frame_idx = 0
+    count = 0
+    update_count = 0
     ts_frame = 0
     ts = time.time()
     best_mean_reward = None
@@ -140,12 +144,13 @@ def train(env_name='PongNoFrameskip-v4',
 
         reward = agent.play_step(net, epsilon)
         if reward is not None:
+            count += 1
             total_rewards.append(reward)
             speed = (frame_idx - ts_frame) / (time.time() - ts)
             ts_frame = frame_idx
             ts = time.time()
             mean_reward = np.mean(total_rewards[-100:])
-            print(f'{frame_idx}: done {len(total_rewards)} games, mean reward: {mean_reward}, eps {epsilon}, speed: {speed}')
+            print(f'{frame_idx}: done {count} games, mean reward: {mean_reward}, eps {epsilon}, speed: {speed}')
             if best_mean_reward is None or best_mean_reward < mean_reward:
                 # Save network
                 net.model.save_weights(f'./checkpoints/{env_name}/checkpoint')
@@ -167,4 +172,9 @@ def train(env_name='PongNoFrameskip-v4',
             loss_t = calc_loss(batch, net, tgt_net, gamma, tape)
         gradient = tape.gradient(loss_t, params)
         optimizer.apply_gradients(zip(gradient, params))
-    return total_rewards
+        update_count += 1
+        if update_count % 10000 == 0:
+            arr = np.array(total_rewards[-10000:])
+            rewards_mean_std.append({'rewards_mean': np.mean(arr),
+                                     'rewards_std': np.std(arr)})
+    return rewards_mean_std
