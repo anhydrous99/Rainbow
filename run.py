@@ -11,7 +11,7 @@ def main():
     parser.add_argument('--replay_size', type=int, default=1000000)
     parser.add_argument('--learning_rate', type=float, default=0.00025)
     parser.add_argument('--sync_target_frames', type=int, default=10000)
-    parser.add_argument('--replay_start_size', type=int, default=1000000)
+    parser.add_argument('--replay_start_size', type=int, default=50000)
     parser.add_argument('--epsilon_decay_last_frame', type=int, default=1000000)
     parser.add_argument('--gradient_momentum', type=float, default=0.95)
     parser.add_argument('--squared_gradient_momentum', type=float, default=0.95)
