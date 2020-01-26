@@ -134,7 +134,7 @@ def train(env_name='PongNoFrameskip-v4',
                                             rho=squared_gradient_momentum,
                                             epsilon=min_squared_gradient)
     params = net.trainable_variables
-    total_rewards = RingBuffer(capacity=100000)
+    total_rewards = RingBuffer(capacity=15000)
     rewards_mean_std = []
     frame_idx = 0
     count = 0

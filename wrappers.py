@@ -139,9 +139,20 @@ class ScaledFloatFrame(gym.ObservationWrapper):
         return np.array(observation).astype(np.float32) / 255.0
 
 
+class CastFrame(gym.ObservationWrapper):
+    def __init__(self, env):
+        gym.ObservationWrapper.__init__(self, env)
+        self.observation_space = env.observation_space
+        self.observation_space.dtype = np.float32
+
+    def observation(self, observation):
+        return observation.astype(np.float32)
+
+
 def make_env(env_name):
     env = gym.make(env_name)
     if len(env.observation_space.shape) == 1:
+        env = CastFrame(env)
         return env
     env = NoopResetEnv(env)
     env = MaxAndSkipEnv(env)
