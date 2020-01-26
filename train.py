@@ -26,11 +26,11 @@ class ExperienceBuffer:
     def sample(self, batch_size):
         indices = np.random.choice(len(self.buffer), batch_size, replace=False)
         states, actions, rewards, dones, next_states = zip(*[self.buffer[idx] for idx in indices])
-        return np.array(states), \
-               np.array(actions), \
-               np.array(rewards, dtype=np.float32), \
-               np.array(dones, dtype=np.uint8), \
-               np.array(next_states)
+
+        def ar(array, **kwargs):
+            return np.array(array, **kwargs)
+
+        return ar(states), ar(actions), ar(rewards, dtype=np.float32), ar(dones, dtype=np.uint8), ar(next_states)
 
 
 class Agent:
@@ -122,7 +122,6 @@ def train(env_name='PongNoFrameskip-v4',
 
     buffer = ExperienceBuffer(replay_size)
     agent = Agent(env, buffer)
-    epsilon = epsilon_start
 
     optimizer = tf.keras.optimizers.RMSprop(learning_rate=learning_rate,
                                             momentum=gradient_momentum,
