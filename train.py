@@ -1,4 +1,4 @@
-import atari_wrappers
+import wrappers
 import dqn_model
 
 import os
@@ -95,7 +95,6 @@ def calc_loss(batch, net, tgt_net, gamma, tape):
 
 
 def train(env_name='PongNoFrameskip-v4',
-          mean_reward_bound=19.5,
           gamma=0.99,
           batch_size=32,
           replay_size=1000000,
@@ -111,9 +110,15 @@ def train(env_name='PongNoFrameskip-v4',
           train_frames=50000000):
     profiler.start_profiler_server(6009)
     print(f'Training DQN on {env_name} environment')
-    env = atari_wrappers.make_env(env_name)
-    net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
-    tgt_net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
+    env = wrappers.make_env(env_name)
+    net = None
+    tgt_net = None
+    if len(env.observation_space.shape) != 1:
+        net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
+        tgt_net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
+    else:
+        net = dqn_model.DQNNoConvolution(*env.observation_space.shape, env.action_space.n)
+        tgt_net = dqn_model.DQNNoConvolution(*env.observation_space.shape, env.action_space.n)
     net.model.summary()
 
     if os.path.exists(f'checkpoints/{env_name}/checkpoint'):

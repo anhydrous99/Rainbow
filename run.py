@@ -4,8 +4,7 @@ from train import train
 
 def main():
     parser = argparse.ArgumentParser(description='Deep Q-network (DQN)')
-    parser.add_argument('--env', type=str, default='PongNoFrameskip-v4')
-    parser.add_argument('--mean_reward_bound', type=float, default=19.5)
+    parser.add_argument('--env', type=str, default='CartPole-v1')
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--replay_size', type=int, default=1000000)
@@ -21,7 +20,6 @@ def main():
     parser.add_argument('--train_frames', type=int, default=50000000)
     args = parser.parse_args()
     env_str = args.env
-    mean_reward_bound = args.mean_reward_bound
     gamma = args.gamma
     batch_size = args.batch_size
     replay_size = args.replay_size
@@ -37,7 +35,6 @@ def main():
     train_frames = args.train_frames
 
     train(env_str,
-          mean_reward_bound,
           gamma,
           batch_size,
           replay_size,
