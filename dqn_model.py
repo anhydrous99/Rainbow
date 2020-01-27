@@ -29,9 +29,8 @@ class DQNNoConvolution(tf.Module):
         super(DQNNoConvolution, self).__init__(name=name)
 
         self.model = Sequential([
-            keras.layers.Dense(input_shape * 4, input_shape=(input_shape,), activation='relu'),
-            keras.layers.Dense(input_shape * 8, activation='relu'),
-            keras.layers.Dense(n_actions, activation='linear')
+            keras.layers.Dense(input_shape * 6, input_shape=(input_shape,), activation='tanh'),
+            keras.layers.Dense(n_actions)
         ])
 
     @tf.function

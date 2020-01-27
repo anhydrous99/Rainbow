@@ -1,5 +1,6 @@
 import wrappers
 import dqn_model
+import plot
 
 import os
 import time
@@ -7,7 +8,6 @@ import numpy as np
 import collections
 
 import tensorflow as tf
-from numpy_ringbuffer import RingBuffer
 from tensorflow.python.eager import profiler
 
 Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
@@ -82,7 +82,7 @@ def ll(net, tgt_net, gamma, states_t, next_states_t, actions_t, rewards_t, done_
     return tf.keras.losses.MSE(expected_state_action_values, state_action_values)
 
 
-def calc_loss(batch, net, tgt_net, gamma, tape):
+def calc_loss(batch, net, tgt_net, gamma):
     states, actions, rewards, dones, next_states = batch
 
     states_t = tf.convert_to_tensor(states)
@@ -90,7 +90,6 @@ def calc_loss(batch, net, tgt_net, gamma, tape):
     actions_t = tf.convert_to_tensor(actions)
     rewards_t = tf.convert_to_tensor(rewards)
     done_mask = tf.convert_to_tensor(dones, dtype=bool)
-    tape.watch(states_t)
     return ll(net, tgt_net, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask)
 
 
@@ -109,8 +108,6 @@ def train(env_name='PongNoFrameskip-v4',
     profiler.start_profiler_server(6009)
     print(f'Training DQN on {env_name} environment')
     env = wrappers.make_env(env_name)
-    net = None
-    tgt_net = None
     if len(env.observation_space.shape) != 1:
         net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
         tgt_net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
@@ -129,7 +126,7 @@ def train(env_name='PongNoFrameskip-v4',
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     params = net.trainable_variables
-    total_rewards = RingBuffer(capacity=15000)
+    total_rewards = []
     rewards_mean_std = []
     frame_idx = 0
     count = 0
@@ -172,12 +169,16 @@ def train(env_name='PongNoFrameskip-v4',
 
         batch = buffer.sample(batch_size)
         with tf.GradientTape() as tape:
-            loss_t = calc_loss(batch, net, tgt_net, gamma, tape)
+            loss_t = calc_loss(batch, net, tgt_net, gamma)
         gradient = tape.gradient(loss_t, params)
         optimizer.apply_gradients(zip(gradient, params))
         update_count += 1
-        if update_count % 10000 == 0:
-            arr = np.array(total_rewards[-10000:])
+        if update_count % 100 == 0:
+            arr = np.array(total_rewards[-100:])
             rewards_mean_std.append({'rewards_mean': np.mean(arr),
-                                     'rewards_std': np.std(arr)})
-    return rewards_mean_std
+                                     'rewards_std': np.std(arr),
+                                     'step': update_count})
+    plot.directory_check('./plots')
+    plot.plot(rewards_mean_std, f'./plots/{env_name}.png', env_name)
+    plot.directory_check('./data')
+    plot.save(rewards_mean_std, f'./data/{env_name}.csv')

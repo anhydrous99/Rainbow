@@ -1,16 +1,44 @@
 import seaborn as sns
-import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import argparse
+import os
 
 
-def save():
-    pass
+def directory_check(directory):
+    if not os.path.isdir(directory):
+        os.mkdir(directory)
 
 
-def plot(x_list, y_list, range):
-    assert len(x_list) == len(y_list)
-    fig, ax = plt.subplots()
-    clrs = sns.color_palette("husl", len(x_list))
-    with sns.axes_style('darkgrid'):
-        pass
+def save(data, save_path):
+    df = pd.DataFrame(data)
+    df.to_csv(save_path, index=False)
+
+
+def plot(data, save_path, name, runs=1):
+    df = pd.DataFrame(data)
+    sns.set_style('darkgrid')
+    fix, ax = plt.subplots()
+    ax.set_title(name)
+    clrs = sns.color_palette('hls', runs)
+    sns.lineplot(x='step', y='rewards_mean', data=df, c=clrs[0])
+    ax.fill_between(df['step'], df['rewards_mean'] - df['rewards_std'],
+                    df['rewards_mean'] + df['rewards_std'], alpha=0.6,
+                    facecolor=clrs[0])
+    plt.savefig(save_path)
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Deep Q-network (DQN) Plotter')
+    parser.add_argument('--data', type=str, default='data/CartPole-v1.csv')
+    parser.add_argument('--png', type=str, default='plot.png')
+    parser.add_argument('--name', type=str, default='CartPole-v1')
+    args = parser.parse_args()
+
+    assert os.path.exists(args.data)
+    df = pd.read_csv(args.data)
+    plot(df, args.png, args.name)
+
+
+if __name__ == '__main__':
+    main()
