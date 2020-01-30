@@ -1,4 +1,7 @@
 {
+  "multiprocessing": false,
+  "num_cpus": 2,
+  "num_gpus": 0.25,
   "gamma": 0.99,
   "batch_size": 32,
   "replay_size": 100000,
@@ -11,18 +14,8 @@
 
   "runs": [
     {
-      "env": "CartPole-v1",
-      "train_reward": 475
-    },
-    {
       "env": "LunarLander-v2",
       "train_reward": 200
-    },
-    {
-      "env": "PongNoFrameskip-v4",
-      "sync_target_frames": 10000,
-      "replay_start_size": 20000,
-      "train_frames": 5000000
     }
   ]
 }

@@ -6,9 +6,7 @@ import os
 import time
 import numpy as np
 import collections
-
 import tensorflow as tf
-from tensorflow.python.eager import profiler
 
 Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
 
