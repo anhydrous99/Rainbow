@@ -105,7 +105,6 @@ def train(env_name='PongNoFrameskip-v4',
           epsilon_final=0.1,
           train_frames=50000000,
           train_rewards=495):
-    profiler.start_profiler_server(6009)
     print(f'Training DQN on {env_name} environment')
     env = wrappers.make_env(env_name)
     if len(env.observation_space.shape) != 1:
@@ -154,12 +153,14 @@ def train(env_name='PongNoFrameskip-v4',
                 if best_mean_reward is not None:
                     print(f'Best mean reward updated {best_mean_reward} -> {mean_reward}, model saved')
                 best_mean_reward = mean_reward
-            if frame_idx >= train_frames:
-                print(f'Trained for {frame_idx} frames. Done.')
-                break
-            if mean_reward >= train_rewards:
-                print(f'Reached reward: {mean_reward}. Done.')
-                break
+            if train_frames is not None:
+                if frame_idx >= train_frames:
+                    print(f'Trained for {frame_idx} frames. Done.')
+                    break
+            if train_rewards is not None:
+                if mean_reward >= train_rewards:
+                    print(f'Reached reward: {mean_reward}. Done.')
+                    break
 
         if len(buffer) < replay_start_size:
             continue
