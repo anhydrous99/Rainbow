@@ -1,34 +1,11 @@
+import os
+import plot
+import time
 import wrappers
 import dqn_model
-import plot
-
-import os
-import time
 import numpy as np
-import collections
+import experience as xp
 import tensorflow as tf
-
-Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
-
-
-class ExperienceBuffer:
-    def __init__(self, capacity):
-        self.buffer = collections.deque(maxlen=capacity)
-
-    def __len__(self):
-        return len(self.buffer)
-
-    def append(self, experience):
-        self.buffer.append(experience)
-
-    def sample(self, batch_size):
-        indices = np.random.choice(len(self.buffer), batch_size, replace=False)
-        states, actions, rewards, dones, next_states = zip(*[self.buffer[idx] for idx in indices])
-
-        def ar(array, **kwargs):
-            return np.array(array, **kwargs)
-
-        return ar(states), ar(actions), ar(rewards, dtype=np.float32), ar(dones, dtype=np.uint8), ar(next_states)
 
 
 class Agent:
@@ -37,7 +14,7 @@ class Agent:
         self.env = env
         self.state = None
         self.total_reward = 0.0
-        self.exp_buffer = ExperienceBuffer(replay_size)
+        self.exp_buffer = xp.ExperienceBuffer(replay_size)
         self.net = net(env.observation_space.shape, env.action_space.n)
         self.tgt_net = net(env.observation_space.shape, env.action_space.n)
         self.optimizer = optimizer
@@ -63,7 +40,7 @@ class Agent:
         new_state, reward, is_done, _ = self.env.step(action)
         self.total_reward += reward
 
-        exp = Experience(self.state, action, reward, is_done, new_state)
+        exp = xp.Experience(self.state, action, reward, is_done, new_state)
         self.exp_buffer.append(exp)
         self.state = new_state
         if is_done:
