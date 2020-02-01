@@ -32,12 +32,12 @@ class ExperienceBuffer:
 
 
 class Agent:
-    def __init__(self, env, exp_buffer, optimizer, batch_size):
+    def __init__(self, env, replay_size, optimizer, batch_size):
         net = dqn_model.DQN if len(env.observation_space.shape) != 1 else dqn_model.DQNNoConvolution
         self.env = env
         self.state = None
         self.total_reward = 0.0
-        self.exp_buffer = exp_buffer
+        self.exp_buffer = ExperienceBuffer(replay_size)
         self.net = net(env.observation_space.shape, env.action_space.n)
         self.tgt_net = net(env.observation_space.shape, env.action_space.n)
         self.optimizer = optimizer
@@ -113,6 +113,9 @@ class Agent:
         gradient = tape.gradient(loss_t, params)
         self.optimizer.apply_gradients(zip(gradient, params))
 
+    def buffer_size(self):
+        return len(self.exp_buffer)
+
 
 def train(env_name='PongNoFrameskip-v4',
           gamma=0.99,
@@ -128,9 +131,8 @@ def train(env_name='PongNoFrameskip-v4',
           train_rewards=495):
     print(f'Training DQN on {env_name} environment')
     env = wrappers.make_env(env_name)
-    buffer = ExperienceBuffer(replay_size)
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-    agent = Agent(env, buffer, optimizer, batch_size)
+    agent = Agent(env, replay_size, optimizer, batch_size)
     agent.load_checkpoint(f'checkpoints/{env_name}/checkpoint')
 
     total_rewards = []
@@ -170,7 +172,7 @@ def train(env_name='PongNoFrameskip-v4',
                     print(f'Reached reward: {mean_reward}. Done.')
                     break
 
-        if len(buffer) < replay_start_size:
+        if agent.buffer_size() < replay_start_size:
             continue
 
         if frame_idx % sync_target_frames == 0:
