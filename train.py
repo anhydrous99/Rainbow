@@ -9,12 +9,12 @@ import tensorflow as tf
 
 
 class Agent:
-    def __init__(self, env, replay_size, optimizer, batch_size):
+    def __init__(self, env, replay_size, optimizer, batch_size, n_steps, gamma):
         net = dqn_model.DQN if len(env.observation_space.shape) != 1 else dqn_model.DQNNoConvolution
         self.env = env
         self.state = None
         self.total_reward = 0.0
-        self.exp_buffer = xp.ExperienceBuffer(replay_size)
+        self.exp_buffer = xp.ExperienceBuffer(replay_size, gamma, n_steps)
         self.net = net(env.observation_space.shape, env.action_space.n)
         self.tgt_net = net(env.observation_space.shape, env.action_space.n)
         self.optimizer = optimizer
@@ -40,7 +40,7 @@ class Agent:
         new_state, reward, is_done, _ = self.env.step(action)
         self.total_reward += reward
 
-        exp = xp.Experience(self.state, action, reward, is_done, new_state)
+        exp = xp.Experience(self.state, action, reward, is_done)
         self.exp_buffer.append(exp)
         self.state = new_state
         if is_done:
@@ -61,7 +61,7 @@ class Agent:
         self.net.model.save_weights(path)
 
     @tf.function
-    def ll(self, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask):
+    def ll(self, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask, n_steps=3):
         net_output = self.net(states_t)
         net_output = tf.gather(net_output, tf.expand_dims(actions_t, 1), batch_dims=1)
         state_action_values = tf.squeeze(net_output, -1)
@@ -69,7 +69,7 @@ class Agent:
         state_action_values = tf.where(done_mask, tf.zeros_like(next_state_values), state_action_values)
         next_state_values = tf.stop_gradient(next_state_values)
 
-        expected_state_action_values = next_state_values * gamma + rewards_t
+        expected_state_action_values = next_state_values * (gamma ** n_steps) + rewards_t
         return tf.keras.losses.MSE(expected_state_action_values, state_action_values)
 
     def calc_loss(self, batch, gamma):
@@ -105,12 +105,15 @@ def train(env_name='PongNoFrameskip-v4',
           epsilon_start=1.0,
           epsilon_final=0.1,
           train_frames=50000000,
-          train_rewards=495):
+          train_rewards=495,
+          n_steps=3,
+          save_checkpoints=True):
     print(f'Training DQN on {env_name} environment')
     env = wrappers.make_env(env_name)
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-    agent = Agent(env, replay_size, optimizer, batch_size)
-    agent.load_checkpoint(f'checkpoints/{env_name}/checkpoint')
+    agent = Agent(env, replay_size, optimizer, batch_size, n_steps, gamma)
+    if save_checkpoints:
+        agent.load_checkpoint(f'checkpoints/{env_name}/checkpoint')
 
     total_rewards = []
     rewards_mean_std = []
@@ -136,7 +139,8 @@ def train(env_name='PongNoFrameskip-v4',
             print(f'{frame_idx}: done {count} games, mean reward: {mean_reward}, eps {epsilon}, speed: {speed}')
             if best_mean_reward is None or best_mean_reward < mean_reward:
                 # Save network
-                agent.save_checkpoint(f'./checkpoints/{env_name}/checkpoint')
+                if save_checkpoints:
+                    agent.save_checkpoint(f'./checkpoints/{env_name}/checkpoint')
                 if best_mean_reward is not None:
                     print(f'Best mean reward updated {best_mean_reward} -> {mean_reward}, model saved')
                 best_mean_reward = mean_reward
@@ -162,6 +166,6 @@ def train(env_name='PongNoFrameskip-v4',
                                      'rewards_std': np.std(arr),
                                      'step': update_count})
     plot.directory_check('./plots')
-    plot.plot(rewards_mean_std, f'./plots/{env_name}.png', env_name)
+    plot.plot(rewards_mean_std, f'./plots/{env_name}_{str(int(time.time()))}.png', env_name)
     plot.directory_check('./data')
-    plot.save(rewards_mean_std, f'./data/{env_name}.csv')
+    plot.save(rewards_mean_std, f'./data/{env_name}_{str(int(time.time()))}.csv')
