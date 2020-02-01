@@ -32,18 +32,23 @@ class ExperienceBuffer:
 
 
 class Agent:
-    def __init__(self, env, exp_buffer):
+    def __init__(self, env, exp_buffer, optimizer, batch_size):
+        net = dqn_model.DQN if len(env.observation_space.shape) != 1 else dqn_model.DQNNoConvolution
         self.env = env
         self.state = None
         self.total_reward = 0.0
         self.exp_buffer = exp_buffer
+        self.net = net(env.observation_space.shape, env.action_space.n)
+        self.tgt_net = net(env.observation_space.shape, env.action_space.n)
+        self.optimizer = optimizer
+        self.batch_size = batch_size
         self._reset()
 
     def _reset(self):
         self.state = self.env.reset()
         self.total_reward = 0.0
 
-    def play_step(self, net, epsilon=0.0):
+    def play_step(self, epsilon=0.0):
         done_reward = None
 
         if np.random.random() < epsilon:
@@ -51,7 +56,7 @@ class Agent:
         else:
             state_a = np.array([self.state], copy=False)
             state_v = tf.convert_to_tensor(state_a)
-            q_vals_v = net(state_v)
+            q_vals_v = self.net(state_v)
             act_v = tf.math.argmax(q_vals_v, axis=1)
             action = int(act_v.numpy()[0])
 
@@ -66,29 +71,47 @@ class Agent:
             self._reset()
         return done_reward
 
+    def sync_weights(self):
+        self.tgt_net.model.set_weights(self.net.model.get_weights())
 
-@tf.function
-def ll(net, tgt_net, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask):
-    net_output = net(states_t)
-    net_output = tf.gather(net_output, tf.expand_dims(actions_t, 1), batch_dims=1)
-    state_action_values = tf.squeeze(net_output, -1)
-    next_state_values = tf.math.reduce_max(tgt_net(next_states_t), axis=1)
-    state_action_values = tf.where(done_mask, tf.zeros_like(next_state_values), state_action_values)
-    next_state_values = tf.stop_gradient(next_state_values)
+    def load_checkpoint(self, path):
+        if os.path.exists(path):
+            print('Loading checkpoint')
+            self.net.model.load_weights(path)
+            self.tgt_net.model.set_weights(self.net.model.get_weights())
 
-    expected_state_action_values = next_state_values * gamma + rewards_t
-    return tf.keras.losses.MSE(expected_state_action_values, state_action_values)
+    def save_checkpoint(self, path):
+        self.net.model.save_weights(path)
 
+    @tf.function
+    def ll(self, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask):
+        net_output = self.net(states_t)
+        net_output = tf.gather(net_output, tf.expand_dims(actions_t, 1), batch_dims=1)
+        state_action_values = tf.squeeze(net_output, -1)
+        next_state_values = tf.math.reduce_max(self.tgt_net(next_states_t), axis=1)
+        state_action_values = tf.where(done_mask, tf.zeros_like(next_state_values), state_action_values)
+        next_state_values = tf.stop_gradient(next_state_values)
 
-def calc_loss(batch, net, tgt_net, gamma):
-    states, actions, rewards, dones, next_states = batch
+        expected_state_action_values = next_state_values * gamma + rewards_t
+        return tf.keras.losses.MSE(expected_state_action_values, state_action_values)
 
-    states_t = tf.convert_to_tensor(states)
-    next_states_t = tf.convert_to_tensor(next_states)
-    actions_t = tf.convert_to_tensor(actions)
-    rewards_t = tf.convert_to_tensor(rewards)
-    done_mask = tf.convert_to_tensor(dones, dtype=bool)
-    return ll(net, tgt_net, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask)
+    def calc_loss(self, batch, gamma):
+        states, actions, rewards, dones, next_states = batch
+
+        states_t = tf.convert_to_tensor(states)
+        next_states_t = tf.convert_to_tensor(next_states)
+        actions_t = tf.convert_to_tensor(actions)
+        rewards_t = tf.convert_to_tensor(rewards)
+        done_mask = tf.convert_to_tensor(dones, dtype=bool)
+        return self.ll(gamma, states_t, next_states_t, actions_t, rewards_t, done_mask)
+
+    def step(self, gamma):
+        params = self.net.trainable_variables
+        batch = self.exp_buffer.sample(self.batch_size)
+        with tf.GradientTape() as tape:
+            loss_t = self.calc_loss(batch, gamma)
+        gradient = tape.gradient(loss_t, params)
+        self.optimizer.apply_gradients(zip(gradient, params))
 
 
 def train(env_name='PongNoFrameskip-v4',
@@ -105,24 +128,11 @@ def train(env_name='PongNoFrameskip-v4',
           train_rewards=495):
     print(f'Training DQN on {env_name} environment')
     env = wrappers.make_env(env_name)
-    if len(env.observation_space.shape) != 1:
-        net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
-        tgt_net = dqn_model.DQN(env.observation_space.shape, env.action_space.n)
-    else:
-        net = dqn_model.DQNNoConvolution(*env.observation_space.shape, env.action_space.n)
-        tgt_net = dqn_model.DQNNoConvolution(*env.observation_space.shape, env.action_space.n)
-    net.model.summary()
-
-    if os.path.exists(f'checkpoints/{env_name}/checkpoint'):
-        print('Loading checkpoint')
-        net.model.load_weights(f'checkpoints/{env_name}/checkpoint')
-        tgt_net.model.set_weights(net.model.get_weights())
-
     buffer = ExperienceBuffer(replay_size)
-    agent = Agent(env, buffer)
-
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-    params = net.trainable_variables
+    agent = Agent(env, buffer, optimizer, batch_size)
+    agent.load_checkpoint(f'checkpoints/{env_name}/checkpoint')
+
     total_rewards = []
     rewards_mean_std = []
     frame_idx = 0
@@ -136,7 +146,7 @@ def train(env_name='PongNoFrameskip-v4',
         frame_idx += 1
         epsilon = max(epsilon_final, epsilon_start - frame_idx / epsilon_decay_last_frame)
 
-        reward = agent.play_step(net, epsilon)
+        reward = agent.play_step(epsilon)
         if reward is not None:
             count += 1
             total_rewards.append(reward)
@@ -147,7 +157,7 @@ def train(env_name='PongNoFrameskip-v4',
             print(f'{frame_idx}: done {count} games, mean reward: {mean_reward}, eps {epsilon}, speed: {speed}')
             if best_mean_reward is None or best_mean_reward < mean_reward:
                 # Save network
-                net.model.save_weights(f'./checkpoints/{env_name}/checkpoint')
+                agent.save_checkpoint(f'./checkpoints/{env_name}/checkpoint')
                 if best_mean_reward is not None:
                     print(f'Best mean reward updated {best_mean_reward} -> {mean_reward}, model saved')
                 best_mean_reward = mean_reward
@@ -164,13 +174,8 @@ def train(env_name='PongNoFrameskip-v4',
             continue
 
         if frame_idx % sync_target_frames == 0:
-            tgt_net.model.set_weights(net.model.get_weights())
-
-        batch = buffer.sample(batch_size)
-        with tf.GradientTape() as tape:
-            loss_t = calc_loss(batch, net, tgt_net, gamma)
-        gradient = tape.gradient(loss_t, params)
-        optimizer.apply_gradients(zip(gradient, params))
+            agent.sync_weights()
+        agent.step(gamma)
         update_count += 1
         if update_count % 100 == 0:
             arr = np.array(total_rewards[-100:])
