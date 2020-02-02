@@ -1,10 +1,10 @@
 {
-  "multiprocessing": false,
+  "multiprocessing": true,
   "num_cpus": 2,
   "num_gpus": 0.25,
   "gamma": 0.99,
   "batch_size": 32,
-  "replay_size": 200000,
+  "replay_size": 100000,
   "learning_rate": 0.0001,
   "sync_target_frames": 5000,
   "replay_start_size": 50000,
@@ -12,12 +12,18 @@
   "epsilon_start": 1.0,
   "epsilon_final": 0.1,
   "n_steps": 3,
-  "save_checkpoints": true,
+  "save_checkpoints": false,
 
   "runs": [
     {
       "env": "CartPole-v1",
-      "train_reward": 475
+      "train_frames": 2000000
+    },
+    {
+      "env": "PongNoFrameskip-v4",
+      "replay_size": 80000,
+      "train_frames": 2000000,
+      "learning_rate": 0.001
     }
   ]
 }
