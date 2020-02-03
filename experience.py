@@ -36,7 +36,7 @@ class ExperienceBuffer:
             next_state = self.buffer[index + self.n_steps][0]
             for sub_index in range(1, self.n_steps):
                 reward += self.buffer[index + sub_index][2] * (self.gamma ** sub_index)
-                if current_buffer[3]:
+                if self.buffer[index + sub_index][3]:
                     break
             states.append(current_state)
             actions.append(current_action)

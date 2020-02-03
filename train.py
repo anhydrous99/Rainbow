@@ -114,6 +114,7 @@ def train(env_name='PongNoFrameskip-v4',
     env = wrappers.make_env(env_name)
     if random_seed is not None:
         tf.random.set_seed(random_seed)
+        env.seed(random_seed)
     f_name = env_name + run_name if run_name is not None else env_name
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     agent = Agent(env, replay_size, optimizer, batch_size, n_steps, gamma)
@@ -165,8 +166,8 @@ def train(env_name='PongNoFrameskip-v4',
             agent.sync_weights()
         agent.step(gamma)
         update_count += 1
-        if update_count % 100 == 0:
-            arr = np.array(total_rewards[-100:])
+        if update_count % 10 == 0:
+            arr = np.array(total_rewards[-10:])
             rewards_mean_std.append({'rewards_mean': np.mean(arr),
                                      'rewards_std': np.std(arr),
                                      'step': update_count})
