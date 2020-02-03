@@ -107,13 +107,18 @@ def train(env_name='PongNoFrameskip-v4',
           train_frames=50000000,
           train_rewards=495,
           n_steps=3,
-          save_checkpoints=True):
+          save_checkpoints=True,
+          run_name=None,
+          random_seed=None):
     print(f'Training DQN on {env_name} environment')
     env = wrappers.make_env(env_name)
+    if random_seed is not None:
+        tf.random.set_seed(random_seed)
+    f_name = env_name + run_name if run_name is not None else env_name
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     agent = Agent(env, replay_size, optimizer, batch_size, n_steps, gamma)
     if save_checkpoints:
-        agent.load_checkpoint(f'checkpoints/{env_name}/checkpoint')
+        agent.load_checkpoint(f'checkpoints/{f_name}/checkpoint')
 
     total_rewards = []
     rewards_mean_std = []
@@ -140,7 +145,7 @@ def train(env_name='PongNoFrameskip-v4',
             if best_mean_reward is None or best_mean_reward < mean_reward:
                 # Save network
                 if save_checkpoints:
-                    agent.save_checkpoint(f'./checkpoints/{env_name}/checkpoint')
+                    agent.save_checkpoint(f'./checkpoints/{f_name}/checkpoint')
                 if best_mean_reward is not None:
                     print(f'Best mean reward updated {best_mean_reward} -> {mean_reward}, model saved')
                 best_mean_reward = mean_reward
@@ -166,6 +171,6 @@ def train(env_name='PongNoFrameskip-v4',
                                      'rewards_std': np.std(arr),
                                      'step': update_count})
     plot.directory_check('./plots')
-    plot.plot(rewards_mean_std, f'./plots/{env_name}_{str(int(time.time()))}.png', env_name)
+    plot.plot(rewards_mean_std, f'./plots/{f_name}.png', f_name)
     plot.directory_check('./data')
-    plot.save(rewards_mean_std, f'./data/{env_name}_{str(int(time.time()))}.csv')
+    plot.save(rewards_mean_std, f'./data/{f_name}.csv')
