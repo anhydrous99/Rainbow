@@ -14,6 +14,7 @@ class Agent:
         self.env = env
         self.state = None
         self.total_reward = 0.0
+        self.n_steps = n_steps
         self.exp_buffer = xp.ExperienceBuffer(replay_size, gamma, n_steps)
         self.net = net(env.observation_space.shape, env.action_space.n)
         self.tgt_net = net(env.observation_space.shape, env.action_space.n)
@@ -61,7 +62,7 @@ class Agent:
         self.net.model.save_weights(path)
 
     @tf.function
-    def ll(self, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask, n_steps=3):
+    def ll(self, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask):
         net_output = self.net(states_t)
         net_output = tf.gather(net_output, tf.expand_dims(actions_t, 1), batch_dims=1)
         state_action_values = tf.squeeze(net_output, -1)
@@ -69,7 +70,7 @@ class Agent:
         state_action_values = tf.where(done_mask, tf.zeros_like(next_state_values), state_action_values)
         next_state_values = tf.stop_gradient(next_state_values)
 
-        expected_state_action_values = next_state_values * (gamma ** n_steps) + rewards_t
+        expected_state_action_values = next_state_values * (gamma ** self.n_steps) + rewards_t
         return tf.keras.losses.MSE(expected_state_action_values, state_action_values)
 
     def calc_loss(self, batch, gamma):
