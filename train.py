@@ -9,12 +9,13 @@ import tensorflow as tf
 
 
 class Agent:
-    def __init__(self, env, replay_size, optimizer, batch_size, n_steps, gamma):
+    def __init__(self, env, replay_size, optimizer, batch_size, n_steps, gamma, use_double=True):
         net = dqn_model.DQN if len(env.observation_space.shape) != 1 else dqn_model.DQNNoConvolution
         self.env = env
         self.state = None
         self.total_reward = 0.0
         self.n_steps = n_steps
+        self.use_double = use_double
         self.exp_buffer = xp.ExperienceBuffer(replay_size, gamma, n_steps)
         self.net = net(env.observation_space.shape, env.action_space.n)
         self.tgt_net = net(env.observation_space.shape, env.action_space.n)
@@ -63,10 +64,16 @@ class Agent:
 
     @tf.function
     def ll(self, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask):
+        if self.use_double:
+            states_t = tf.concat([states_t, next_states_t], 0)
         net_output = self.net(states_t)
-        net_output = tf.gather(net_output, tf.expand_dims(actions_t, 1), batch_dims=1)
-        state_action_values = tf.squeeze(net_output, -1)
-        next_state_values = tf.math.reduce_max(self.tgt_net(next_states_t), axis=1)
+        state_action_values = tf.squeeze(tf.gather(net_output[:self.batch_size], tf.expand_dims(actions_t, 1), batch_dims=1), -1)
+        if self.use_double:
+            next_state_actions = tf.argmax(net_output[self.batch_size:], axis=1)
+            next_state_values = tf.squeeze(
+                tf.gather(self.tgt_net(next_states_t), tf.expand_dims(next_state_actions, 1), batch_dims=1), -1)
+        else:
+            next_state_values = tf.reduce_max(self.tgt_net(next_states_t), axis=1)
         state_action_values = tf.where(done_mask, tf.zeros_like(next_state_values), state_action_values)
         next_state_values = tf.stop_gradient(next_state_values)
 
@@ -110,6 +117,7 @@ def train(env_name='PongNoFrameskip-v4',
           n_steps=3,
           save_checkpoints=True,
           run_name=None,
+          use_double=True,
           random_seed=None):
     print(f'Training DQN on {env_name} environment')
     env = wrappers.make_env(env_name)
@@ -118,7 +126,7 @@ def train(env_name='PongNoFrameskip-v4',
         env.seed(random_seed)
     f_name = env_name + "_" + run_name if run_name is not None else env_name
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-    agent = Agent(env, replay_size, optimizer, batch_size, n_steps, gamma)
+    agent = Agent(env, replay_size, optimizer, batch_size, n_steps, gamma, use_double)
     if save_checkpoints:
         agent.load_checkpoint(f'checkpoints/{f_name}/checkpoint')
 
