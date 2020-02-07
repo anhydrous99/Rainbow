@@ -26,7 +26,7 @@ def main():
     n_steps = conf_json['n_steps']
     save_checkpoints = conf_json['save_checkpoints']
     use_double = conf_json['use_double']
-    use_dense = conf_json['use_dense'] if conf_json['use_dense'] else None
+    use_dense = conf_json['use_dense'] if 'use_dense' in conf_json else None
     random_seed = conf_json['random_seed'] if 'random_seed' in conf_json else None
     runs = conf_json['runs']
 
