@@ -19,6 +19,7 @@ class Agent:
         self.exp_buffer = xp.ExperienceBuffer(replay_size, gamma, n_steps)
         self.net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense)
         self.tgt_net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense)
+        self.params = self.net.trainable_variables
         self.optimizer = optimizer
         self.batch_size = batch_size
         self._reset()
@@ -91,12 +92,11 @@ class Agent:
         return self.ll(gamma, states_t, next_states_t, actions_t, rewards_t, done_mask)
 
     def step(self, gamma):
-        params = self.net.trainable_variables
         batch = self.exp_buffer.sample(self.batch_size)
         with tf.GradientTape() as tape:
             loss_t = self.calc_loss(batch, gamma)
-        gradient = tape.gradient(loss_t, params)
-        self.optimizer.apply_gradients(zip(gradient, params))
+        gradient = tape.gradient(loss_t, self.params)
+        self.optimizer.apply_gradients(zip(gradient, self.params))
 
     def buffer_size(self):
         return len(self.exp_buffer)
