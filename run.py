@@ -2,7 +2,7 @@ import ray
 import json
 import argparse
 from train import train
-from utils import conditional_decorator
+from utils import conditional_decorator, slice_per
 
 
 def main():
@@ -13,7 +13,6 @@ def main():
     conf_text = file.read()
     file.close()
     conf_json = json.loads(conf_text)
-
     gamma = conf_json['gamma']
     batch_size = conf_json['batch_size']
     replay_size = conf_json['replay_size']
@@ -79,21 +78,25 @@ def main():
               random_seed)
         return 1
 
-    remote_objects = []
-    for run in runs:
-        if conf_json['multiprocessing']:
-            r_obj = fun.remote(run, gamma, batch_size, replay_size, learning_rate, sync_target_frames,
-                               replay_start_size, epsilon_decay_last_frame, epsilon_start, epsilon_final,
-                               n_steps, save_checkpoints, use_double, use_dense, random_seed)
-            remote_objects.append(r_obj)
-        else:
+    if 'multiprocessing' in conf_json and conf_json['multiprocessing']:
+        concurrent_processes = conf_json['concurrent_processes']
+        runs = slice_per(runs, len(runs) // concurrent_processes)
+        for r in runs:
+            remote_objects = []
+            for run in r:
+                r_obj = fun.remote(run, gamma, batch_size, replay_size, learning_rate, sync_target_frames,
+                                   replay_start_size, epsilon_decay_last_frame, epsilon_start, epsilon_final,
+                                   n_steps, save_checkpoints, use_double, use_dense, random_seed)
+                remote_objects.append(r_obj)
+            values = ray.get(remote_objects)
+            for val in values:
+                assert val == 1
+
+    else:
+        for run in runs:
             fun(run, gamma, batch_size, replay_size, learning_rate, sync_target_frames, replay_start_size,
                 epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps, save_checkpoints, use_double,
                 use_dense, random_seed)
-    if conf_json['multiprocessing']:
-        values = ray.get(remote_objects)
-        for val in values:
-            assert val == 1
 
 
 if __name__ == '__main__':

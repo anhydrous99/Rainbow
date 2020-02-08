@@ -1,10 +1,11 @@
 {
-  "multiprocessing": false,
+  "multiprocessing": true,
+  "concurrent_processes": 2,
   "num_cpus": 2,
   "num_gpus": 0.25,
   "gamma": 0.99,
   "batch_size": 32,
-  "replay_size": 80000,
+  "replay_size": 100000,
   "learning_rate": 0.0001,
   "sync_target_frames": 5000,
   "replay_start_size": 10000,
