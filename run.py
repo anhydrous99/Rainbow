@@ -1,4 +1,5 @@
 import ray
+import math
 import json
 import argparse
 from train import train
@@ -80,7 +81,7 @@ def main():
 
     if 'multiprocessing' in conf_json and conf_json['multiprocessing']:
         concurrent_processes = conf_json['concurrent_processes']
-        runs = slice_per(runs, len(runs) // concurrent_processes)
+        runs = slice_per(runs, math.ceil(len(runs) / concurrent_processes))
         for r in runs:
             remote_objects = []
             for run in r:

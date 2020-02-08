@@ -1,6 +1,6 @@
 {
   "multiprocessing": true,
-  "concurrent_processes": 2,
+  "concurrent_processes": 3,
   "num_cpus": 2,
   "num_gpus": 0.25,
   "gamma": 0.99,
