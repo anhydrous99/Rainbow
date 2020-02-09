@@ -1,5 +1,5 @@
 {
-  "multiprocessing": true,
+  "multiprocessing": false,
   "concurrent_processes": 3,
   "num_cpus": 2,
   "num_gpus": 0.25,
@@ -20,81 +20,9 @@
   "runs": [
     {
       "env": "PongNoFrameskip-v4",
-      "run_name": "Atari_1step_double",
-      "use_double": true,
-      "train_frames": 1000000,
+      "run_name": "dueling",
+      "train_reward": 19,
       "n_steps": 1
-    },
-    {
-      "env": "PongNoFrameskip-v4",
-      "run_name": "Atari_2step_double",
-      "use_double": true,
-      "train_frames": 1000000,
-      "n_steps": 2
-    },
-    {
-      "env": "PongNoFrameskip-v4",
-      "run_name": "Atari_1step_double_noisy",
-      "use_double": true,
-      "use_dense": "noisy",
-      "train_frames": 1000000,
-      "n_steps": 1
-    },
-    {
-      "env": "PongNoFrameskip-v4",
-      "run_name": "Atari_2step_double_noisy",
-      "use_double": true,
-      "use_dense": "noisy",
-      "train_frames": 1000000,
-      "n_steps": 2
-    },
-    {
-      "env": "PongNoFrameskip-v4",
-      "run_name": "Atari_1step_double_factorized_noisy",
-      "use_double": true,
-      "use_dense": "factorized_noisy",
-      "train_frames": 1000000,
-      "n_steps": 1
-    },
-    {
-      "env": "PongNoFrameskip-v4",
-      "run_name": "Atari_2step_double_factorized_noisy",
-      "use_double": true,
-      "use_dense": "factorized_noisy",
-      "train_frames": 1000000,
-      "n_steps": 2
-    },
-    {
-      "env": "PongNoFrameskip-v4",
-      "run_name": "Atari_1step_noisy",
-      "use_double": false,
-      "use_dense": "noisy",
-      "train_frames": 1000000,
-      "n_steps": 1
-    },
-    {
-      "env": "PongNoFrameskip-v4",
-      "run_name": "Atari_2step_noisy",
-      "use_double": false,
-      "use_dense": "noisy",
-      "train_frames": 1000000,
-      "n_steps": 2
-    },
-    {
-      "env": "PongNoFrameskip-v4",
-      "run_name": "Atari_1step_factorized_noisy",
-      "use_double": false,
-      "use_dense": "factorized_noisy",
-      "train_frames": 1000000,
-      "n_steps": 1
-    },
-    {
-      "env": "PongNoFrameskip-v4",
-      "run_name": "Atari_2step_factorized_noisy",
-      "use_double": false,
-      "use_dense": "factorized_noisy",
-      "train_frames": 1000000,
-      "n_steps": 2
     }
   ]
 }

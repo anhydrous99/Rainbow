@@ -155,10 +155,11 @@ def train(env_name='PongNoFrameskip-v4',
             print(f'{frame_idx}: done {count} games, mean reward: {mean_reward}, eps {epsilon}, speed: {speed}')
             if best_mean_reward is None or best_mean_reward < mean_reward:
                 # Save network
-                if save_checkpoints:
-                    agent.save_checkpoint(f'./checkpoints/{f_name}/checkpoint')
                 if best_mean_reward is not None:
-                    print(f'Best mean reward updated {best_mean_reward} -> {mean_reward}, model saved')
+                    if save_checkpoints:
+                        agent.save_checkpoint(f'./checkpoints/{f_name}/checkpoint')
+                    print(f'Best mean reward updated {best_mean_reward} -> {mean_reward}' 
+                          ', model saved' if save_checkpoints else '')
                 best_mean_reward = mean_reward
             if train_frames is not None:
                 if frame_idx >= train_frames:

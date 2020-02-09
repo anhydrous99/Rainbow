@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.models import Sequential
+from tensorflow.keras.models import Model
 from layers import NoisyDense, FactorizedNoisyDense
 
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -18,17 +18,26 @@ def dense_chooser(dense=None):
 
 
 class DQN(tf.Module):
-    def __init__(self, input_shape, n_actions, name=None, use_dense=None):
+    def __init__(self, input_shape, n_actions, name=None, use_dense=None, dueling=True):
         super(DQN, self).__init__(name=name)
         dense = dense_chooser(use_dense)
-        self.model = Sequential([
-            keras.layers.Conv2D(32, 8, 4, input_shape=input_shape, activation='relu'),
-            keras.layers.Conv2D(64, 4, 2, activation='relu'),
-            keras.layers.Conv2D(64, 3, 1, activation='relu'),
-            keras.layers.Flatten(),
-            dense(512, activation='relu'),
-            dense(n_actions)
-        ])
+        inp = tf.keras.layers.Input(shape=input_shape)
+        x = keras.layers.Conv2D(32, 8, 4, input_shape=input_shape, activation='relu')(inp)
+        x = keras.layers.Conv2D(64, 4, 2, activation='relu')(x)
+        x = keras.layers.Conv2D(64, 3, 1, activation='relu')(x)
+        x = keras.layers.Flatten()(x)
+
+        x1 = dense(256 if dueling else 512, activation='relu')(x)
+        x1 = dense(n_actions)(x1)
+
+        if dueling:
+            x2 = dense(256, activation='relu')(x)
+            x2 = dense(1)(x2)
+
+            x_mean = tf.keras.layers.Lambda(lambda xs: tf.math.reduce_mean(xs, axis=1, keepdims=True))(x1)
+            x = tf.keras.layers.Subtract()([x1, x_mean])
+            x = tf.keras.layers.Add()([x2, x])
+        self.model = Model(inputs=inp, outputs=x if dueling else x1)
 
     @tf.function
     def __call__(self, x):
@@ -36,13 +45,24 @@ class DQN(tf.Module):
 
 
 class DQNNoConvolution(tf.Module):
-    def __init__(self, input_shape, n_actions, name=None, use_dense=None):
+    def __init__(self, input_shape, n_actions, name=None, use_dense=None, dueling=True):
         super(DQNNoConvolution, self).__init__(name=name)
         dense = dense_chooser(use_dense)
-        self.model = Sequential([
-            dense(sum(input_shape) * 6, input_shape=input_shape, activation='tanh'),
-            dense(n_actions)
-        ])
+        inp = tf.keras.layers.Input(shape=input_shape)
+        x = None
+
+        x1 = dense(sum(input_shape) * 6, activation='tanh')(inp)
+        x1 = dense(n_actions)(x1)
+
+        if dueling:
+            x2 = dense(sum(input_shape) * 6, activation='tanh')(inp)
+            x2 = dense(1)(x2)
+
+            x_mean = tf.keras.layers.Lambda(lambda xs: tf.math.reduce_mean(xs, axis=1, keepdims=True))(x1)
+            x = tf.keras.layers.Subtract()([x1, x_mean])
+            x = tf.keras.layers.Add()([x2, x])
+        self.model = Model(inputs=inp, outputs=x if dueling else x1)
+        self.model.summary()
 
     @tf.function
     def __call__(self, x):
