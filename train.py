@@ -9,7 +9,8 @@ import tensorflow as tf
 
 
 class Agent:
-    def __init__(self, env, replay_size, optimizer, batch_size, n_steps, gamma, use_double=True, use_dense=None):
+    def __init__(self, env, replay_size, optimizer, batch_size, n_steps, gamma, use_double=True, use_dense=None,
+                 dueling=False):
         net = dqn_model.DQN if len(env.observation_space.shape) != 1 else dqn_model.DQNNoConvolution
         self.env = env
         self.state = None
@@ -17,8 +18,8 @@ class Agent:
         self.n_steps = n_steps
         self.use_double = use_double
         self.exp_buffer = xp.ExperienceBuffer(replay_size, gamma, n_steps)
-        self.net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense)
-        self.tgt_net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense)
+        self.net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense, dueling=dueling)
+        self.tgt_net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense, dueling=dueling)
         self.params = self.net.trainable_variables
         self.optimizer = optimizer
         self.batch_size = batch_size
@@ -119,6 +120,7 @@ def train(env_name='PongNoFrameskip-v4',
           run_name=None,
           use_double=True,
           use_dense=None,
+          dueling=False,
           random_seed=None):
     print(f'Training DQN on {env_name} environment')
     env = wrappers.make_env(env_name)
@@ -127,7 +129,7 @@ def train(env_name='PongNoFrameskip-v4',
         env.seed(random_seed)
     f_name = env_name + "_" + run_name if run_name is not None else env_name
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-    agent = Agent(env, replay_size, optimizer, batch_size, n_steps, gamma, use_double, use_dense)
+    agent = Agent(env, replay_size, optimizer, batch_size, n_steps, gamma, use_double, use_dense, dueling)
     if save_checkpoints:
         agent.load_checkpoint(f'checkpoints/{f_name}/checkpoint')
 

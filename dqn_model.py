@@ -18,7 +18,7 @@ def dense_chooser(dense=None):
 
 
 class DQN(tf.Module):
-    def __init__(self, input_shape, n_actions, name=None, use_dense=None, dueling=True):
+    def __init__(self, input_shape, n_actions, name=None, use_dense=None, dueling=False):
         super(DQN, self).__init__(name=name)
         dense = dense_chooser(use_dense)
         inp = tf.keras.layers.Input(shape=input_shape)
@@ -45,7 +45,7 @@ class DQN(tf.Module):
 
 
 class DQNNoConvolution(tf.Module):
-    def __init__(self, input_shape, n_actions, name=None, use_dense=None, dueling=True):
+    def __init__(self, input_shape, n_actions, name=None, use_dense=None, dueling=False):
         super(DQNNoConvolution, self).__init__(name=name)
         dense = dense_chooser(use_dense)
         inp = tf.keras.layers.Input(shape=input_shape)

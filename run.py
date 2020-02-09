@@ -1,9 +1,7 @@
-import math
 import json
 import argparse
 from train import train
 from joblib import Parallel, delayed
-from utils import conditional_decorator, slice_per
 
 
 def main():
@@ -28,12 +26,13 @@ def main():
     use_double = conf_json['use_double']
     use_dense = conf_json['use_dense'] if 'use_dense' in conf_json else None
     random_seed = conf_json['random_seed'] if 'random_seed' in conf_json else None
+    dueling = conf_json['dueling'] if 'dueling' in conf_json else False
     runs = conf_json['runs']
 
     def fun(s_args):
         f_run, f_gamma, f_batch_size, f_replay_size, f_learning_rate, f_sync_target_frames = s_args[:6]
         f_replay_start_size, f_e_d_l_frame, f_epsilon_start, f_epsilon_final, f_n_steps = s_args[6:11]
-        f_save_checkpoints, f_use_double, f_use_dense, f_random_seed = s_args[11:]
+        f_save_checkpoints, f_use_double, f_use_dense, f_dueling, f_random_seed = s_args[11:]
         env_str = f_run['env']
         n_gamma = f_run['gamma'] if 'gamma' in f_run else f_gamma
         n_batch_size = f_run['batch_size'] if 'batch_size' in f_run else f_batch_size
@@ -49,6 +48,7 @@ def main():
         run_name = f_run['run_name'] if 'run_name' in f_run else None
         n_use_double = f_run['use_double'] if 'use_double' in f_run else f_use_double
         n_use_dense = f_run['use_dense'] if 'use_dense' in f_run else f_use_dense
+        n_dueling = f_run['dueling'] if 'dueling' in f_run else f_dueling
         train_frames = None
         train_reward = None
         if 'train_frames' in f_run:
@@ -72,6 +72,7 @@ def main():
               run_name,
               n_use_double,
               n_use_dense,
+              n_dueling,
               f_random_seed)
         return 1
 
@@ -81,14 +82,13 @@ def main():
         for run in runs:
             args.append((run, gamma, batch_size, replay_size, learning_rate, sync_target_frames, replay_start_size,
                          epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps, save_checkpoints, use_double,
-                         use_dense, random_seed))
+                         use_dense, dueling, random_seed))
         Parallel(n_jobs=concurrent_processes, prefer='processes')(delayed(fun)(arg) for arg in args)
-
     else:
         for run in runs:
             args = (run, gamma, batch_size, replay_size, learning_rate, sync_target_frames, replay_start_size,
                     epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps, save_checkpoints, use_double,
-                    use_dense, random_seed)
+                    use_dense, dueling, random_seed)
             fun(args)
 
 

@@ -1,8 +1,6 @@
 {
   "multiprocessing": true,
   "concurrent_processes": 2,
-  "num_cpus": 2,
-  "num_gpus": 0.25,
   "gamma": 0.99,
   "batch_size": 32,
   "replay_size": 100000,
@@ -12,7 +10,7 @@
   "epsilon_decay_last_frame": 200000,
   "epsilon_start": 1.0,
   "epsilon_final": 0.01,
-  "n_steps": 2,
+  "n_steps": 1,
   "save_checkpoints": false,
   "use_double": false,
   "random_seed": 4321,
@@ -21,20 +19,13 @@
     {
       "env": "PongNoFrameskip-v4",
       "run_name": "dueling",
-      "train_reward": 19,
-      "n_steps": 1
+      "train_frames": 1000000,
+      "dueling": true
     },
     {
       "env": "PongNoFrameskip-v4",
       "run_name": "dueling",
-      "train_reward": 19,
-      "n_steps": 1
-    },
-    {
-      "env": "PongNoFrameskip-v4",
-      "run_name": "dueling",
-      "train_reward": 19,
-      "n_steps": 1
+      "train_frames": 1000000
     }
   ]
 }
