@@ -1,8 +1,8 @@
-import ray
 import math
 import json
 import argparse
 from train import train
+from joblib import Parallel, delayed
 from utils import conditional_decorator, slice_per
 
 
@@ -30,14 +30,10 @@ def main():
     random_seed = conf_json['random_seed'] if 'random_seed' in conf_json else None
     runs = conf_json['runs']
 
-    if conf_json['multiprocessing']:
-        ray.init()
-
-    @conditional_decorator(ray.remote(num_cpus=conf_json['num_cpus'], num_gpus=conf_json['num_gpus']),
-                           conf_json['multiprocessing'])
-    def fun(f_run, f_gamma, f_batch_size, f_replay_size, f_learning_rate, f_sync_target_frames, f_replay_start_size,
-            f_epsilon_decay_last_frame, f_epsilon_start, f_epsilon_final, f_n_steps, save_checkpoints, f_use_double,
-            f_use_dense, random_seed):
+    def fun(s_args):
+        f_run, f_gamma, f_batch_size, f_replay_size, f_learning_rate, f_sync_target_frames = s_args[:6]
+        f_replay_start_size, f_e_d_l_frame, f_epsilon_start, f_epsilon_final, f_n_steps = s_args[6:11]
+        f_save_checkpoints, f_use_double, f_use_dense, f_random_seed = s_args[11:]
         env_str = f_run['env']
         n_gamma = f_run['gamma'] if 'gamma' in f_run else f_gamma
         n_batch_size = f_run['batch_size'] if 'batch_size' in f_run else f_batch_size
@@ -46,7 +42,7 @@ def main():
         n_sync_target_frames = f_run['sync_target_frames'] if 'sync_target_frames' in f_run else f_sync_target_frames
         n_replay_start_size = f_run['replay_start_size'] if 'replay_start_size' in f_run else f_replay_start_size
         n_epsilon_decay_last_frame = f_run[
-            'epsilon_decay_last_frame'] if 'epsilon_decay_last_frame' in f_run else f_epsilon_decay_last_frame
+            'epsilon_decay_last_frame'] if 'epsilon_decay_last_frame' in f_run else f_e_d_l_frame
         n_epsilon_start = f_run['epsilon_start'] if 'epsilon_start' in f_run else f_epsilon_start
         n_epsilon_final = f_run['epsilon_final'] if 'epsilon_final' in f_run else f_epsilon_final
         nn_steps = f_run['n_steps'] if 'n_steps' in f_run else f_n_steps
@@ -72,32 +68,28 @@ def main():
               train_frames,
               train_reward,
               nn_steps,
-              save_checkpoints,
+              f_save_checkpoints,
               run_name,
               n_use_double,
               n_use_dense,
-              random_seed)
+              f_random_seed)
         return 1
 
     if 'multiprocessing' in conf_json and conf_json['multiprocessing']:
         concurrent_processes = conf_json['concurrent_processes']
-        runs = slice_per(runs, math.ceil(len(runs) / concurrent_processes))
-        for r in runs:
-            remote_objects = []
-            for run in r:
-                r_obj = fun.remote(run, gamma, batch_size, replay_size, learning_rate, sync_target_frames,
-                                   replay_start_size, epsilon_decay_last_frame, epsilon_start, epsilon_final,
-                                   n_steps, save_checkpoints, use_double, use_dense, random_seed)
-                remote_objects.append(r_obj)
-            values = ray.get(remote_objects)
-            for val in values:
-                assert val == 1
+        args = []
+        for run in runs:
+            args.append((run, gamma, batch_size, replay_size, learning_rate, sync_target_frames, replay_start_size,
+                         epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps, save_checkpoints, use_double,
+                         use_dense, random_seed))
+        Parallel(n_jobs=concurrent_processes, prefer='processes')(delayed(fun)(arg) for arg in args)
 
     else:
         for run in runs:
-            fun(run, gamma, batch_size, replay_size, learning_rate, sync_target_frames, replay_start_size,
-                epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps, save_checkpoints, use_double,
-                use_dense, random_seed)
+            args = (run, gamma, batch_size, replay_size, learning_rate, sync_target_frames, replay_start_size,
+                    epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps, save_checkpoints, use_double,
+                    use_dense, random_seed)
+            fun(args)
 
 
 if __name__ == '__main__':
