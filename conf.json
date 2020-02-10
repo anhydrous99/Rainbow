@@ -13,6 +13,7 @@
   "n_steps": 1,
   "save_checkpoints": false,
   "use_double": false,
+  "dueling": false,
   "random_seed": 4321,
 
   "runs": [
@@ -24,8 +25,9 @@
     },
     {
       "env": "PongNoFrameskip-v4",
-      "run_name": "dueling",
-      "train_frames": 1000000
+      "run_name": "non_dueling",
+      "train_frames": 1000000,
+      "dueling": false
     }
   ]
 }

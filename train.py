@@ -69,7 +69,8 @@ class Agent:
         if self.use_double:
             states_t = tf.concat([states_t, next_states_t], 0)
         net_output = self.net(states_t)
-        state_action_values = tf.squeeze(tf.gather(net_output[:self.batch_size], tf.expand_dims(actions_t, 1), batch_dims=1), -1)
+        state_action_values = tf.squeeze(
+            tf.gather(net_output[:self.batch_size], tf.expand_dims(actions_t, 1), batch_dims=1), -1)
         if self.use_double:
             next_state_actions = tf.argmax(net_output[self.batch_size:], axis=1)
             next_state_values = tf.squeeze(
@@ -121,7 +122,8 @@ def train(env_name='PongNoFrameskip-v4',
           use_double=True,
           use_dense=None,
           dueling=False,
-          random_seed=None):
+          random_seed=None,
+          index=0):
     print(f'Training DQN on {env_name} environment')
     env = wrappers.make_env(env_name)
     if random_seed is not None:
@@ -154,13 +156,13 @@ def train(env_name='PongNoFrameskip-v4',
             ts_frame = frame_idx
             ts = time.time()
             mean_reward = np.mean(total_rewards[-100:])
-            print(f'{frame_idx}: done {count} games, mean reward: {mean_reward}, eps {epsilon}, speed: {speed}')
+            print(f'{index}:{frame_idx}: done {count} games, mean reward: {mean_reward}, eps {epsilon}, speed: {speed}')
             if best_mean_reward is None or best_mean_reward < mean_reward:
                 # Save network
                 if best_mean_reward is not None:
                     if save_checkpoints:
                         agent.save_checkpoint(f'./checkpoints/{f_name}/checkpoint')
-                    print(f'Best mean reward updated {best_mean_reward} -> {mean_reward}' 
+                    print(f'Best mean reward updated {best_mean_reward} -> {mean_reward}'
                           ', model saved' if save_checkpoints else '')
                 best_mean_reward = mean_reward
             if train_frames is not None:
