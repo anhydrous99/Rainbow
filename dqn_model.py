@@ -52,19 +52,19 @@ class DQNNoConvolution(tf.Module):
         super(DQNNoConvolution, self).__init__(name=name)
         dense = dense_chooser(use_dense)
         inp = tf.keras.layers.Input(shape=input_shape)
-        x = dense(sum(input_shape), activation='relu')(inp)
-        advantage = dense(sum(input_shape) * 6, activation='tanh')(x)
-        advantage = dense(n_actions)(advantage)
+        x = dense(sum(input_shape) * 6)(inp)
+        advantage = dense(n_actions)(x)
 
         if dueling:
-            value = dense(sum(input_shape) * 6, activation='tanh')(x)
-            value = dense(1)(value)
+            #value = dense(sum(input_shape) * 6)(x)
+            value = dense(1)(x)
 
             advantage_m = tf.keras.layers.Lambda(lambda xs: tf.math.reduce_mean(xs, axis=1, keepdims=True))(advantage)
             x = tf.keras.layers.Subtract()([advantage, advantage_m])
             x = tf.keras.layers.Add()([value, x])
         else:
             x = advantage
+        x = tf.keras.layers.Activation('tanh')(x)
         self.model = Model(inputs=inp, outputs=x)
         self.model.summary()
 

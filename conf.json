@@ -1,5 +1,5 @@
 {
-  "multiprocessing": false,
+  "multiprocessing": true,
   "concurrent_processes": 2,
   "gamma": 0.99,
   "batch_size": 32,
@@ -20,13 +20,13 @@
     {
       "env": "CartPole-v1",
       "run_name": "dueling",
-      "train_frames": 1000000,
-      "dueling": true
+      "train_frames": 2000000,
+      "dueling": false
     },
     {
       "env": "CartPole-v1",
-      "run_name": "non_dueling",
-      "train_frames": 1000000,
+      "run_name": "dueling",
+      "train_frames": 2000000,
       "dueling": false
     }
   ]
