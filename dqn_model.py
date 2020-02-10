@@ -6,7 +6,7 @@ from layers import NoisyDense, FactorizedNoisyDense
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 if len(physical_devices) != 0:
     for device in physical_devices:
-        tf.config.experimental.set_memory_growth(device[0], True)
+        tf.config.experimental.set_memory_growth(device, True)
 
 
 def dense_chooser(dense=None):
