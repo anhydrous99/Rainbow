@@ -162,7 +162,7 @@ def train(env_name='PongNoFrameskip-v4',
                 if best_mean_reward is not None:
                     if save_checkpoints:
                         agent.save_checkpoint(f'./checkpoints/{f_name}/checkpoint')
-                    print(f'Best mean reward updated {best_mean_reward} -> {mean_reward}'
+                    print(f'Best mean reward updated {best_mean_reward} -> {mean_reward}' +
                           ', model saved' if save_checkpoints else '')
                 best_mean_reward = mean_reward
             if train_frames is not None:

@@ -27,17 +27,19 @@ class DQN(tf.Module):
         x = keras.layers.Conv2D(64, 3, 1, activation='relu')(x)
         x = keras.layers.Flatten()(x)
 
-        x1 = dense(256 if dueling else 512, activation='relu')(x)
-        x1 = dense(n_actions)(x1)
+        advantage = dense(256 if dueling else 512, activation='relu')(x)
+        advantage = dense(n_actions)(advantage)
 
         if dueling:
-            x2 = dense(256, activation='relu')(x)
-            x2 = dense(1)(x2)
+            value = dense(256, activation='relu')(x)
+            value = dense(1)(value)
 
-            x_mean = tf.keras.layers.Lambda(lambda xs: tf.math.reduce_mean(xs, axis=1, keepdims=True))(x1)
-            x = tf.keras.layers.Subtract()([x1, x_mean])
-            x = tf.keras.layers.Add()([x2, x])
-        self.model = Model(inputs=inp, outputs=x if dueling else x1)
+            advantage_m = tf.keras.layers.Lambda(lambda xs: tf.math.reduce_mean(xs, axis=1, keepdims=True))(advantage)
+            x = tf.keras.layers.Subtract()([advantage, advantage_m])
+            x = tf.keras.layers.Add()([value, x])
+        else:
+            x = advantage
+        self.model = Model(inputs=inp, outputs=x)
 
     @tf.function
     def __call__(self, x):
@@ -49,19 +51,20 @@ class DQNNoConvolution(tf.Module):
         super(DQNNoConvolution, self).__init__(name=name)
         dense = dense_chooser(use_dense)
         inp = tf.keras.layers.Input(shape=input_shape)
-        x = None
-
-        x1 = dense(sum(input_shape) * 6, activation='tanh')(inp)
-        x1 = dense(n_actions)(x1)
+        x = dense(sum(input_shape), activation='relu')(inp)
+        advantage = dense(sum(input_shape) * 6, activation='tanh')(x)
+        advantage = dense(n_actions)(advantage)
 
         if dueling:
-            x2 = dense(sum(input_shape) * 6, activation='tanh')(inp)
-            x2 = dense(1)(x2)
+            value = dense(sum(input_shape) * 6, activation='tanh')(x)
+            value = dense(1)(value)
 
-            x_mean = tf.keras.layers.Lambda(lambda xs: tf.math.reduce_mean(xs, axis=1, keepdims=True))(x1)
-            x = tf.keras.layers.Subtract()([x1, x_mean])
-            x = tf.keras.layers.Add()([x2, x])
-        self.model = Model(inputs=inp, outputs=x if dueling else x1)
+            advantage_m = tf.keras.layers.Lambda(lambda xs: tf.math.reduce_mean(xs, axis=1, keepdims=True))(advantage)
+            x = tf.keras.layers.Subtract()([advantage, advantage_m])
+            x = tf.keras.layers.Add()([value, x])
+        else:
+            x = advantage
+        self.model = Model(inputs=inp, outputs=x)
         self.model.summary()
 
     @tf.function

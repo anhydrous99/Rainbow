@@ -1,5 +1,5 @@
 {
-  "multiprocessing": true,
+  "multiprocessing": false,
   "concurrent_processes": 2,
   "gamma": 0.99,
   "batch_size": 32,
@@ -18,13 +18,13 @@
 
   "runs": [
     {
-      "env": "PongNoFrameskip-v4",
+      "env": "CartPole-v1",
       "run_name": "dueling",
       "train_frames": 1000000,
       "dueling": true
     },
     {
-      "env": "PongNoFrameskip-v4",
+      "env": "CartPole-v1",
       "run_name": "non_dueling",
       "train_frames": 1000000,
       "dueling": false
