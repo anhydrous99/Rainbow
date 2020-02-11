@@ -125,6 +125,13 @@ def train(env_name='PongNoFrameskip-v4',
           random_seed=None,
           index=0):
     print(f'Training DQN on {env_name} environment')
+    print(f'Params: gamma:{gamma}, batch_size:{batch_size}, replay_size:{replay_size}')
+    print(f'        replay_start_size: {replay_start_size}, learning_rate:{learning_rate}')
+    print(f'        sync_target_frames: {sync_target_frames}, epsilon_decay_last_frame:{epsilon_decay_last_frame}')
+    print(f'        epsilon_start: {epsilon_start}, epsilon_final: {epsilon_final}, train_frames: {train_frames}')
+    print(f'        train_rewards: {train_rewards}, n_steps: {n_steps}, save_checkpoints: {save_checkpoints}')
+    print(f'        run_name: {run_name}, use_double: {use_double}, use_dense: {use_dense}, dueling: {dueling}')
+    print(f'        random_seed: {random_seed}, index: {index}')
     env = wrappers.make_env(env_name)
     if random_seed is not None:
         tf.random.set_seed(random_seed)
