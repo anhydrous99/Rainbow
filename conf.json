@@ -1,15 +1,15 @@
 {
-  "multiprocessing": true,
+  "multiprocessing": false,
   "concurrent_processes": 2,
   "gamma": 0.99,
   "batch_size": 32,
   "replay_size": 100000,
-  "learning_rate": 0.0001,
-  "sync_target_frames": 5000,
+  "learning_rate": 0.00025,
+  "sync_target_frames": 10000,
   "replay_start_size": 10000,
   "epsilon_decay_last_frame": 200000,
   "epsilon_start": 1.0,
-  "epsilon_final": 0.01,
+  "epsilon_final": 0.1,
   "n_steps": 1,
   "save_checkpoints": false,
   "use_double": false,
@@ -18,15 +18,17 @@
 
   "runs": [
     {
-      "env": "CartPole-v1",
+      "env": "PongNoFrameskip-v4",
       "run_name": "dueling",
-      "train_frames": 2000000,
-      "dueling": false
+      "train_frames": 1000000,
+      "train_reward": 19,
+      "dueling": true
     },
     {
-      "env": "CartPole-v1",
-      "run_name": "dueling",
-      "train_frames": 2000000,
+      "env": "PongNoFrameskip-v4",
+      "run_name": "nondueling",
+      "train_frames": 1000000,
+      "train_reward": 19,
       "dueling": false
     }
   ]

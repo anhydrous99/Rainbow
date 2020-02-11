@@ -179,3 +179,16 @@ class FactorizedNoisyDense(NoisyDense):
         if self.activation is not None:
             return self.activation(outputs)
         return outputs
+
+
+class DuelingAggregator(Layer):
+    def __init__(self, **kwargs):
+        super(DuelingAggregator, self).__init__(**kwargs)
+
+    def call(self, inputs, **kwargs):  # pylint: disable=unused-argument
+        adv, val = inputs
+        adv_m = tf.math.reduce_mean(adv, axis=1, keepdims=True)
+        adv_m = tf.tile(adv_m, [1, adv.shape[1]])
+        x = tf.math.subtract(adv, adv_m)
+        x = tf.math.add(val, x)
+        return x

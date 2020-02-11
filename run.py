@@ -30,9 +30,9 @@ def main():
     runs = conf_json['runs']
 
     def fun(s_args):
-        f_run, f_gamma, f_batch_size, f_replay_size, f_learning_rate, f_sync_target_frames, f_replay_start_size, \
-        f_e_d_l_frame, f_epsilon_start, f_epsilon_final, f_n_steps,f_save_checkpoints, f_use_double, f_use_dense, \
-        f_dueling, f_random_seed, f_index = s_args
+        (f_run, f_gamma, f_batch_size, f_replay_size, f_learning_rate, f_sync_target_frames, f_replay_start_size,
+         f_epsilon_decay_last_frame, f_epsilon_start, f_epsilon_final, f_n_steps, f_save_checkpoints, f_use_double,
+         f_use_dense, f_dueling, f_random_seed, f_index) = s_args
         env_str = f_run['env']
         n_gamma = f_run['gamma'] if 'gamma' in f_run else f_gamma
         n_batch_size = f_run['batch_size'] if 'batch_size' in f_run else f_batch_size
@@ -41,7 +41,7 @@ def main():
         n_sync_target_frames = f_run['sync_target_frames'] if 'sync_target_frames' in f_run else f_sync_target_frames
         n_replay_start_size = f_run['replay_start_size'] if 'replay_start_size' in f_run else f_replay_start_size
         n_epsilon_decay_last_frame = f_run[
-            'epsilon_decay_last_frame'] if 'epsilon_decay_last_frame' in f_run else f_e_d_l_frame
+            'epsilon_decay_last_frame'] if 'epsilon_decay_last_frame' in f_run else f_epsilon_decay_last_frame
         n_epsilon_start = f_run['epsilon_start'] if 'epsilon_start' in f_run else f_epsilon_start
         n_epsilon_final = f_run['epsilon_final'] if 'epsilon_final' in f_run else f_epsilon_final
         nn_steps = f_run['n_steps'] if 'n_steps' in f_run else f_n_steps

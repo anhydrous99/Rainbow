@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.models import Model
-from layers import NoisyDense, FactorizedNoisyDense
+from layers import NoisyDense, FactorizedNoisyDense, DuelingAggregator
 
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 if len(physical_devices) != 0:
@@ -28,19 +28,19 @@ class DQN(tf.Module):
         x = keras.layers.Conv2D(64, 3, 1, activation='relu')(x)
         x = keras.layers.Flatten()(x)
 
-        advantage = dense(256 if dueling else 512, activation='relu')(x)
-        advantage = dense(n_actions)(advantage)
-
         if dueling:
-            value = dense(256, activation='relu')(x)
-            value = dense(1)(value)
+            adv = dense(512, activation='relu')(x)
+            adv = dense(n_actions)(adv)
 
-            advantage_m = tf.keras.layers.Lambda(lambda xs: tf.math.reduce_mean(xs, axis=1, keepdims=True))(advantage)
-            x = tf.keras.layers.Subtract()([advantage, advantage_m])
-            x = tf.keras.layers.Add()([value, x])
+            val = dense(512, activation='relu')(x)
+            val = dense(1)(val)
+
+            x = DuelingAggregator()([adv, val])
         else:
-            x = advantage
+            x = dense(512, activation='relu')(x)
+            x = dense(n_actions)(x)
         self.model = Model(inputs=inp, outputs=x)
+        self.model.summary()
 
     @tf.function
     def __call__(self, x):
@@ -52,19 +52,23 @@ class DQNNoConvolution(tf.Module):
         super(DQNNoConvolution, self).__init__(name=name)
         dense = dense_chooser(use_dense)
         inp = tf.keras.layers.Input(shape=input_shape)
-        x = dense(sum(input_shape) * 6)(inp)
-        advantage = dense(n_actions)(x)
+        x = dense(50, activation='relu')(inp)
 
         if dueling:
-            #value = dense(sum(input_shape) * 6)(x)
-            value = dense(1)(x)
+            adv = dense(25, activation='relu')(x)
+            adv = dense(25, activation='relu')(adv)
+            adv = dense(n_actions)(adv)
 
-            advantage_m = tf.keras.layers.Lambda(lambda xs: tf.math.reduce_mean(xs, axis=1, keepdims=True))(advantage)
-            x = tf.keras.layers.Subtract()([advantage, advantage_m])
-            x = tf.keras.layers.Add()([value, x])
+            val = dense(25, activation='relu')(x)
+            val = dense(25, activation='relu')(val)
+            val = dense(1)(val)
+
+            x = DuelingAggregator()([adv, val])
         else:
-            x = advantage
-        x = tf.keras.layers.Activation('tanh')(x)
+            x = dense(50, activation='relu')(x)
+            x = dense(50, activation='relu')(x)
+            x = dense(n_actions)(x)
+
         self.model = Model(inputs=inp, outputs=x)
         self.model.summary()
 
