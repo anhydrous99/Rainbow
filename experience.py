@@ -56,7 +56,7 @@ class PrioritiedBuffer:
         self.gamma = gamma
         self.n_steps = n_steps
         self.capacity = capacity
-        self.priorities = np.zeros((capacity, ), dtype=np.float32)
+        self.priorities = np.zeros((capacity - n_steps, ), dtype=np.float32)
 
     def __len__(self):
         return len(self.buffer)
@@ -67,7 +67,8 @@ class PrioritiedBuffer:
             self.buffer.append(experience)
         else:
             self.buffer[self.position] = experience
-        self.priorities[self.position] = max_priority
+        if self.position < self.capacity - self.n_steps:
+            self.priorities[self.position] = max_priority
         self.position = (self.position + 1) % self.capacity
 
     def sample(self, batch_size, beta=0.4):
