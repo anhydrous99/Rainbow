@@ -17,7 +17,8 @@ class Agent:
         self.total_reward = 0.0
         self.n_steps = n_steps
         self.use_double = use_double
-        self.exp_buffer = xp.ExperienceBuffer(replay_size, gamma, n_steps)
+        #self.exp_buffer = xp.ExperienceBuffer(replay_size, gamma, n_steps)
+        self.exp_buffer = xp.PrioritiedBuffer(replay_size, gamma, n_steps)
         self.net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense, dueling=dueling)
         self.tgt_net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense, dueling=dueling)
         self.params = self.net.trainable_variables
@@ -65,7 +66,7 @@ class Agent:
         self.net.model.save_weights(path)
 
     @tf.function
-    def ll(self, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask):
+    def ll(self, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask, weights):
         if self.use_double:
             states_t = tf.concat([states_t, next_states_t], 0)
         net_output = self.net(states_t)
@@ -81,24 +82,30 @@ class Agent:
         next_state_values = tf.stop_gradient(next_state_values)
 
         expected_state_action_values = next_state_values * (gamma ** self.n_steps) + rewards_t
-        return tf.keras.losses.MSE(expected_state_action_values, state_action_values)
+        losses = tf.math.squared_difference(expected_state_action_values, state_action_values)
+        losses = tf.math.multiply(weights, losses)
+        return tf.reduce_mean(losses, axis=-1), tf.add(1.0e-5, losses)
 
     def calc_loss(self, batch, gamma):
-        states, actions, rewards, dones, next_states = batch
+        states, actions, rewards, dones, next_states, weights = batch[:6]
 
         states_t = tf.convert_to_tensor(states)
         next_states_t = tf.convert_to_tensor(next_states)
         actions_t = tf.convert_to_tensor(actions)
         rewards_t = tf.convert_to_tensor(rewards)
         done_mask = tf.convert_to_tensor(dones, dtype=bool)
-        return self.ll(gamma, states_t, next_states_t, actions_t, rewards_t, done_mask)
+        weights_t = tf.convert_to_tensor(weights)
+        return self.ll(gamma, states_t, next_states_t, actions_t, rewards_t, done_mask, weights_t)
 
-    def step(self, gamma):
+    def step(self, gamma, update_exp_weights=True):
         batch = self.exp_buffer.sample(self.batch_size)
+        indices = batch[6]
         with tf.GradientTape() as tape:
-            loss_t = self.calc_loss(batch, gamma)
+            loss_t, losses = self.calc_loss(batch, gamma)
         gradient = tape.gradient(loss_t, self.params)
         self.optimizer.apply_gradients(zip(gradient, self.params))
+        if update_exp_weights:
+            self.exp_buffer.update_weights(indices, losses.numpy())
 
     def buffer_size(self):
         return len(self.exp_buffer)
