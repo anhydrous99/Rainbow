@@ -5,7 +5,7 @@ import numpy
 import sys
 import os
 
-if sys.platform == 'Windows':
+if sys.platform == 'win32':
     c_options = ['/O2', '/fp:fast', '/arch:AVX2']
 else:
     c_options = ['-Ofast', '-march=native']
