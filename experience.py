@@ -48,7 +48,7 @@ class ExperienceBuffer:
         return ar(states), ar(actions), ar(rewards, dtype=np.float32), ar(dones, dtype=np.uint8), ar(next_states)
 
 
-class PrioritiedBuffer:
+class PriorityBuffer:
     def __init__(self, capacity, gamma=0.99, n_steps=2, alpha=0.6):
         self.buffer = []
         self.position = 0
