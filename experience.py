@@ -1,5 +1,6 @@
 import collections
 import numpy as np
+from segment_tree import SumSegmentTree, MinSegmentTree
 
 Experience = collections.namedtuple('Experience', field_names=['state', 'action', 'reward', 'done'])
 
@@ -56,29 +57,35 @@ class PriorityBuffer:
         self.gamma = gamma
         self.n_steps = n_steps
         self.capacity = capacity
-        self.priorities = np.zeros((capacity - n_steps, ), dtype=np.float32)
+        it_cap = 1
+        while it_cap < capacity:
+            it_cap *= 2
+        self._it_sum = SumSegmentTree(it_cap)
+        self._it_min = MinSegmentTree(it_cap)
+        self._max_priority = 1.0
 
     def __len__(self):
         return len(self.buffer)
 
     def append(self, experience):
-        max_priority = self.priorities.max() if self.buffer else 1.0
+        position = self.position
         if len(self.buffer) < self.capacity:
             self.buffer.append(experience)
         else:
-            self.buffer[self.position] = experience
-        if self.position < self.capacity - self.n_steps:
-            self.priorities[self.position] = max_priority
-        self.position = (self.position + 1) % self.capacity
+            self.buffer[position] = experience
+        self.position = (position + 1) % self.capacity
+        self._it_sum[position] = self._max_priority ** self.alpha
+        self._it_min[position] = self._max_priority ** self.alpha
+
+    def _sample_proportional(self, batch_size):
+        total = self._it_sum.sum(0, len(self.buffer) - 1)
+        mass = np.random.random(size=batch_size) * total
+        idx = self._it_sum.find_prefix_sum_idx(mass)
+        return idx
 
     def sample(self, batch_size, beta=0.4):
-        if len(self.buffer) == self.capacity:
-            priorities = self.priorities
-        else:
-            priorities = self.priorities[:self.position - self.n_steps]
-        probabilities = priorities ** self.alpha
-        probabilities /= probabilities.sum()
-        indices = np.random.choice(len(self.buffer) - self.n_steps, batch_size, p=probabilities)
+        assert beta > 0
+        indices = self._sample_proportional(batch_size)
 
         states = []
         actions = []
@@ -102,12 +109,20 @@ class PriorityBuffer:
             dones.append(current_done)
             next_states.append(next_state)
 
-        total = len(self.buffer)
-        weights = (total * probabilities[indices]) ** (-beta)
-        weights /= weights.max()
+        sm = self._it_sum.sum()
+        p_min = self._it_min.min() / sm
+        max_weight = (p_min * len(self.buffer)) ** (-beta)
+        p_sample = self._it_sum[indices] / sm
+        weights = (p_sample * len(self.buffer)) ** (-beta) / max_weight
         return ar(states), ar(actions), ar(rewards, dtype=np.float32), ar(dones, dtype=np.uint8), ar(next_states), \
-            ar(weights, dtype=np.float32), indices
+               ar(weights, dtype=np.float32), indices
 
     def update_weights(self, batch_indices, batch_priorities):
+        assert len(batch_indices) == len(batch_priorities)
+        assert np.min(batch_priorities) > 0
+        assert np.min(batch_indices) >= 0
         for idx, prio in zip(batch_indices, batch_priorities):
-            self.priorities[idx] = prio
+            idx = int(idx)
+            self._it_sum[idx] = prio ** self.alpha
+            self._it_min[idx] = prio ** self.alpha
+        self._max_priority = max(self._max_priority, np.max(batch_priorities))

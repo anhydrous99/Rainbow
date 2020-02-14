@@ -17,8 +17,7 @@ class Agent:
         self.total_reward = 0.0
         self.n_steps = n_steps
         self.use_double = use_double
-        #self.exp_buffer = xp.ExperienceBuffer(replay_size, gamma, n_steps)
-        self.exp_buffer = xp.PrioritiedBuffer(replay_size, gamma, n_steps)
+        self.exp_buffer = xp.PriorityBuffer(replay_size, gamma, n_steps)
         self.net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense, dueling=dueling)
         self.tgt_net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense, dueling=dueling)
         self.params = self.net.trainable_variables
@@ -192,7 +191,7 @@ def train(env_name='PongNoFrameskip-v4',
 
         if frame_idx % sync_target_frames == 0:
             agent.sync_weights()
-        agent.step(gamma)
+        agent.step(gamma, True if update_count % 1000 == 0 else False)
         update_count += 1
         if update_count % 50 == 0:
             arr = np.array(total_rewards[-50:])
