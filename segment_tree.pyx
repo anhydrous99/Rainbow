@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 
-cdef unique(np.ndarray[int, ndim=1] sorted_array):
+cdef unique(np.ndarray[np.int64_t, ndim=1] sorted_array):
     if len(sorted_array) == 1:
         return sorted_array
     left = sorted_array[:-1]
