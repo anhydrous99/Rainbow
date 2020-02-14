@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 
-cdef unique(np.ndarray[np.int64_t, ndim=1] sorted_array):
+cdef unique(np.ndarray[long, ndim=1] sorted_array):
     if len(sorted_array) == 1:
         return sorted_array
     left = sorted_array[:-1]
@@ -21,7 +21,7 @@ cdef class SumSegmentTree:
     def __setitem__(self, int idx, float val):
         idxs = idx + self._capacity
         self._value[idxs] = val
-        if isinstance(idxs, int) or isinstance(idxs, np.int32):
+        if isinstance(idxs, int) or isinstance(idxs, np.int32) or isinstance(idxs, np.int64):
             idxs = np.array([idxs])
         idxs = unique(idxs // 2)
         while len(idxs) > 1 or idxs[0] > 0:
@@ -84,7 +84,7 @@ cdef class MinSegmentTree:
     def __setitem__(self, int idx, float val):
         idxs = idx + self._capacity
         self._value[idxs] = val
-        if isinstance(idxs, int):
+        if isinstance(idxs, int) or isinstance(idxs, np.int32) or isinstance(idxs, np.int64):
             idxs = np.array([idxs])
         idxs = unique(idxs // 2)
         while len(idxs) > 1 or idxs[0] > 0:
