@@ -3,7 +3,6 @@ from Cython.Build import cythonize
 from distutils.extension import Extension
 import numpy
 import sys
-import os
 
 if sys.platform == 'win32':
     c_options = ['/O2', '/fp:fast', '/arch:AVX2']
@@ -18,5 +17,6 @@ extensions = [
 setup(
     ext_modules=cythonize(extensions,
                           compiler_directives={'language_level': sys.version_info[0]}),
-    include_dirs=[numpy.get_include()]
+    include_dirs=[numpy.get_include()], requires=['joblib', 'tensorflow', 'seaborn', 'matplotlib', 'pandas', 'numpy',
+                                                  'Cython', 'gym']
 )
