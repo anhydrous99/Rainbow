@@ -10,19 +10,23 @@ import tensorflow as tf
 
 class Agent:
     def __init__(self, env, replay_size, optimizer, batch_size, n_steps, gamma, use_double=True, use_dense=None,
-                 dueling=False):
+                 dueling=False, use_distributional=False, n_atoms=None, v_min=None, v_max=None):
         net = dqn_model.DQN if len(env.observation_space.shape) != 1 else dqn_model.DQNNoConvolution
         self.env = env
         self.state = None
         self.total_reward = 0.0
         self.n_steps = n_steps
         self.use_double = use_double
+        self.n_atoms = n_atoms
+        self.v_min = v_min
+        self.v_max = v_max
         self.exp_buffer = xp.PriorityBuffer(replay_size, gamma, n_steps)
         self.net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense, dueling=dueling)
         self.tgt_net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense, dueling=dueling)
         self.params = self.net.trainable_variables
         self.optimizer = optimizer
         self.batch_size = batch_size
+        self.use_distributional = use_distributional
         self._reset()
 
     def _reset(self):
@@ -80,7 +84,10 @@ class Agent:
         state_action_values = tf.where(done_mask, tf.zeros_like(next_state_values), state_action_values)
         next_state_values = tf.stop_gradient(next_state_values)
 
+        # Bellman equation
         expected_state_action_values = next_state_values * (gamma ** self.n_steps) + rewards_t
+
+        # Calculate loss
         losses = tf.math.squared_difference(expected_state_action_values, state_action_values)
         losses = tf.math.multiply(weights, losses)
         return tf.reduce_mean(losses, axis=-1), tf.add(1.0e-5, losses)
@@ -128,8 +135,19 @@ def train(env_name='PongNoFrameskip-v4',
           use_double=True,
           use_dense=None,
           dueling=False,
+          distributional=None,
           random_seed=None,
           index=0):
+    n_atoms = None
+    v_min = None
+    v_max = None
+    if distributional is not None:
+        use_distributional = True
+        n_atoms = distributional['n_atoms']
+        v_min = distributional['v'][0]
+        v_max = distributional['v'][1]
+    else:
+        use_distributional = False
     print(f'Training DQN on {env_name} environment')
     print(f'Params: gamma:{gamma}, batch_size:{batch_size}, replay_size:{replay_size}')
     print(f'        replay_start_size: {replay_start_size}, learning_rate:{learning_rate}')
@@ -137,6 +155,8 @@ def train(env_name='PongNoFrameskip-v4',
     print(f'        epsilon_start: {epsilon_start}, epsilon_final: {epsilon_final}, train_frames: {train_frames}')
     print(f'        train_rewards: {train_rewards}, n_steps: {n_steps}, save_checkpoints: {save_checkpoints}')
     print(f'        run_name: {run_name}, use_double: {use_double}, use_dense: {use_dense}, dueling: {dueling}')
+    if use_distributional:
+        print(f'        n_atoms: {n_atoms}, v_min: {v_min}, v_max: {v_max}')
     print(f'        random_seed: {random_seed}, index: {index}')
     env = wrappers.make_env(env_name)
     if random_seed is not None:
@@ -144,7 +164,8 @@ def train(env_name='PongNoFrameskip-v4',
         env.seed(random_seed)
     f_name = env_name + "_" + run_name if run_name is not None else env_name
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-    agent = Agent(env, replay_size, optimizer, batch_size, n_steps, gamma, use_double, use_dense, dueling)
+    agent = Agent(env, replay_size, optimizer, batch_size, n_steps, gamma, use_double, use_dense, dueling,
+                  use_distributional, n_atoms, v_min, v_max)
     if save_checkpoints:
         agent.load_checkpoint(f'checkpoints/{f_name}/checkpoint')
 

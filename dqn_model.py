@@ -18,9 +18,37 @@ def dense_chooser(dense=None):
         return keras.layers.Dense
 
 
-class DQN(tf.Module):
-    def __init__(self, input_shape, n_actions, name=None, use_dense=None, dueling=False):
-        super(DQN, self).__init__(name=name)
+class DQNBase(tf.Module):
+    def __init__(self, name=None, use_distributional=False, n_atoms=None, v_min=None, v_max=None):
+        super(DQNBase, self).__init__(name=name)
+        self.use_dist = use_distributional
+        self.n_atoms = n_atoms
+        self.v_min = v_min
+        self.v_max = v_max
+        if use_distributional:
+            assert n_atoms is not None
+            assert v_min is not None
+            assert v_max is not None
+            delta_z = (v_max - v_min) / (n_atoms - 1)
+            self.supports = tf.range(v_min, v_max, delta_z, name='supports')  # z_i in the paper
+
+    @tf.function
+    def both(self, x):
+        net_output = self._reshape_output_tensor(self.model(x))
+        probabilities = tf.nn.softmax(net_output)
+        weights = probabilities * self.supports
+        res =
+
+    def _reshape_output_tensor(self, x):
+        batch_size = x.shape[0]
+        return tf.reshape(x, [batch_size, -1, self.n_atoms])
+
+
+class DQN(DQNBase):
+    def __init__(self, input_shape, n_actions, name=None, use_dense=None, dueling=False, use_distributional=False,
+                 n_atoms=None, v_min=None, v_max=None):
+        super(DQN, self).__init__(name=name, use_distributional=use_distributional, n_atoms=n_atoms,
+                                  v_min=v_min, v_max=v_max)
         dense = dense_chooser(use_dense)
         inp = tf.keras.layers.Input(shape=input_shape)
         x = keras.layers.Conv2D(32, 8, 4, input_shape=input_shape, activation='relu')(inp)
@@ -30,7 +58,7 @@ class DQN(tf.Module):
 
         if dueling:
             adv = dense(512, activation='relu')(x)
-            adv = dense(n_actions)(adv)
+            adv = dense(n_actions * n_atoms if use_distributional else n_actions)(adv)
 
             val = dense(512, activation='relu')(x)
             val = dense(1)(val)
@@ -38,18 +66,23 @@ class DQN(tf.Module):
             x = DuelingAggregator()([adv, val])
         else:
             x = dense(512, activation='relu')(x)
-            x = dense(n_actions)(x)
+            x = dense(n_actions * n_atoms if use_distributional else n_actions)(x)
         self.model = Model(inputs=inp, outputs=x)
         self.model.summary()
 
     @tf.function
     def __call__(self, x):
-        return self.model(x)
+        net_output = self.model(x)
+        if self.use_distributional:
+            net_output = self._reshape_output_tensor(net_output)
+        return net_output
 
 
-class DQNNoConvolution(tf.Module):
-    def __init__(self, input_shape, n_actions, name=None, use_dense=None, dueling=False):
-        super(DQNNoConvolution, self).__init__(name=name)
+class DQNNoConvolution(DQNBase):
+    def __init__(self, input_shape, n_actions, name=None, use_dense=None, dueling=False, use_distributional=False,
+                 n_atoms=None, v_min=None, v_max=None):
+        super(DQNNoConvolution, self).__init__(name=name, use_distributional=use_distributional, n_atoms=n_atoms,
+                                               v_min=v_min, v_max=v_max)
         dense = dense_chooser(use_dense)
         inp = tf.keras.layers.Input(shape=input_shape)
         x = dense(50, activation='relu')(inp)
@@ -57,7 +90,7 @@ class DQNNoConvolution(tf.Module):
         if dueling:
             adv = dense(25, activation='relu')(x)
             adv = dense(25, activation='relu')(adv)
-            adv = dense(n_actions)(adv)
+            adv = dense(n_actions * n_atoms if use_distributional else n_actions)(adv)
 
             val = dense(25, activation='relu')(x)
             val = dense(25, activation='relu')(val)
@@ -67,11 +100,14 @@ class DQNNoConvolution(tf.Module):
         else:
             x = dense(50, activation='relu')(x)
             x = dense(50, activation='relu')(x)
-            x = dense(n_actions)(x)
+            x = dense(n_actions * n_atoms if use_distributional else n_actions)(x)
 
         self.model = Model(inputs=inp, outputs=x)
         self.model.summary()
 
     @tf.function
     def __call__(self, x):
-        return self.model(x)
+        net_output = self.model(x)
+        if self.use_distributional:
+            net_output = self._reshape_output_tensor(net_output)
+        return net_output
