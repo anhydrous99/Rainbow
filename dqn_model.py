@@ -29,13 +29,13 @@ class DQNBase(tf.Module):
             assert n_atoms is not None
             assert v_min is not None
             assert v_max is not None
-            delta_z = (v_max - v_min) / (n_atoms - 1)
+            delta_z = (v_max - v_min) / n_atoms
             self.supports = tf.range(v_min, v_max, delta_z, name='supports')  # z_i in the paper
 
     @tf.function
     def both(self, x):
         net_output = self._reshape_output_tensor(self.model(x))
-        probabilities = tf.nn.softmax(net_output)
+        probabilities = tf.nn.softmax(net_output, axis=1)
         weights = probabilities * self.supports
         # Sum the atoms dimension
         res = tf.reduce_sum(weights, axis=-1)
@@ -44,6 +44,10 @@ class DQNBase(tf.Module):
     def _reshape_output_tensor(self, x):
         batch_size = x.shape[0]
         return tf.reshape(x, [batch_size, -1, self.n_atoms])
+
+    @tf.function
+    def q_values(self, x):
+        return self.both(x)[1]
 
 
 class DQN(DQNBase):
@@ -63,7 +67,7 @@ class DQN(DQNBase):
             adv = dense(n_actions * n_atoms if use_distributional else n_actions)(adv)
 
             val = dense(512, activation='relu')(x)
-            val = dense(1)(val)
+            val = dense(n_atoms if use_distributional else 1)(val)
 
             x = DuelingAggregator()([adv, val])
         else:
@@ -75,7 +79,7 @@ class DQN(DQNBase):
     @tf.function
     def __call__(self, x):
         net_output = self.model(x)
-        if self.use_distributional:
+        if self.use_dist:
             net_output = self._reshape_output_tensor(net_output)
         return net_output
 
@@ -96,7 +100,7 @@ class DQNNoConvolution(DQNBase):
 
             val = dense(25, activation='relu')(x)
             val = dense(25, activation='relu')(val)
-            val = dense(1)(val)
+            val = dense(n_atoms if use_distributional else 1)(val)
 
             x = DuelingAggregator()([adv, val])
         else:
@@ -110,6 +114,6 @@ class DQNNoConvolution(DQNBase):
     @tf.function
     def __call__(self, x):
         net_output = self.model(x)
-        if self.use_distributional:
+        if self.use_dist:
             net_output = self._reshape_output_tensor(net_output)
         return net_output
