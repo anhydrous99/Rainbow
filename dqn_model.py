@@ -37,7 +37,9 @@ class DQNBase(tf.Module):
         net_output = self._reshape_output_tensor(self.model(x))
         probabilities = tf.nn.softmax(net_output)
         weights = probabilities * self.supports
-        res =
+        # Sum the atoms dimension
+        res = tf.reduce_sum(weights, axis=-1)
+        return net_output, res
 
     def _reshape_output_tensor(self, x):
         batch_size = x.shape[0]
