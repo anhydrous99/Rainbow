@@ -12,8 +12,15 @@ def compute_projection(next_distribution, rewards, dones, v_min, v_max, n_atoms,
     m = tf.zeros_like(next_distribution)
     tz = np.minimum(v_max, tf.maximum(v_min, rewards + (v_min + atoms * delta_z) * gamma))
     b = (tz - v_min) / delta_z
-    l = tf.cast(tf.math.floor(b), dtype=tf.int32)
-    u = tf.cast(tf.math.ceil(b), dtype=tf.int32)
+    l = tf.math.floor(b)
+    u = tf.math.ceil(b)
+    l_int = tf.cast(l, dtype=tf.int32)
+    u_int = tf.cast(u, dtype=tf.int32)
+    l_update = next_distribution * (u - b)
+    u_update = next_distribution * (b - l)
+    ml = tf.gather_nd(l_update, l_int, batch_dims=1)
+    mu = tf.gather_nd(u_update, u_int, batch_dims=1)
+    print(m)
 
 
 class Agent:
