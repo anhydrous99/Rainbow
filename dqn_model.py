@@ -32,22 +32,16 @@ class DQNBase(tf.Module):
             delta_z = (v_max - v_min) / n_atoms
             self.supports = tf.range(v_min, v_max, delta_z, name='supports')  # z_i in the paper
 
-    @tf.function
-    def both(self, x):
-        net_output = self._reshape_output_tensor(self.model(x))
-        probabilities = tf.nn.softmax(net_output, axis=-1)
-        weights = probabilities * self.supports
-        # Sum the atoms dimension
-        res = tf.reduce_sum(weights, axis=-1)
-        return net_output, res
-
     def _reshape_output_tensor(self, x):
         batch_size = x.shape[0]
         return tf.reshape(x, [batch_size, -1, self.n_atoms])
 
     @tf.function
     def q_values(self, x):
-        return self.both(x)[1]
+        net_output = self._reshape_output_tensor(self.model(x))
+        probabilities = tf.nn.softmax(net_output, axis=-1)
+        weights = probabilities * self.supports
+        return tf.reduce_sum(weights, axis=-1)
 
 
 class DQN(DQNBase):
