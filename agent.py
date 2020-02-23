@@ -5,24 +5,6 @@ import dqn_model
 import os
 
 
-def compute_projection(next_distribution, rewards, dones, v_min, v_max, n_atoms, gamma):
-    delta_z = (v_max - v_min) / (n_atoms - 1)
-    atoms = tf.tile(tf.expand_dims(tf.range(n_atoms, dtype=tf.float32), axis=0), [32, 1])
-    rewards = tf.tile(tf.expand_dims(rewards, axis=-1), [1, 51])
-    m = tf.zeros_like(next_distribution)
-    tz = np.minimum(v_max, tf.maximum(v_min, rewards + (v_min + atoms * delta_z) * gamma))
-    b = (tz - v_min) / delta_z
-    l = tf.math.floor(b)
-    u = tf.math.ceil(b)
-    l_int = tf.cast(l, dtype=tf.int32)
-    u_int = tf.cast(u, dtype=tf.int32)
-    l_update = next_distribution * (u - b)
-    u_update = next_distribution * (b - l)
-    ml = tf.gather_nd(l_update, l_int, batch_dims=1)
-    mu = tf.gather_nd(u_update, u_int, batch_dims=1)
-    print(m)
-
-
 class Agent:
     def __init__(self, env, replay_size, optimizer, batch_size, n_steps, gamma, use_double=True, use_dense=None,
                  dueling=False, use_distributional=False, n_atoms=None, v_min=None, v_max=None):
@@ -112,26 +94,55 @@ class Agent:
     #     losses = tf.math.multiply(weights, losses)
     #     return tf.reduce_mean(losses, axis=-1), tf.add(1.0e-5, losses)
 
+    @tf.function
     def ll(self, gamma, states_t, next_states_t, actions_t, rewards_t, done_mask, weights):
-        if self.use_double:
-            states_t = tf.concat([states_t, next_states_t], 0)
-        net_output = self.net(states_t)
+        # Calculate current state probabilities
+        net_output = tf.nn.log_softmax(self.net(states_t), axis=-1)
+        state_action_dist = tf.squeeze(tf.gather(net_output[:self.batch_size], tf.reshape(actions_t, [-1, 1, 1]),
+                                                 batch_dims=1))
 
-        # Calculate the state action values
-        state_action_values = tf.squeeze(tf.gather(net_output[:self.batch_size], tf.reshape(actions_t, [-1, 1, 1]),
-                                                   batch_dims=1))
-        state_action_values = tf.nn.log_softmax(state_action_values, axis=-1)
+        # Calculate next state probabilities
+        target_net_output = tf.nn.softmax(self.tgt_net(next_states_t), axis=-1)
+        best_actions = tf.argmax(tf.reduce_sum(target_net_output, -1), -1)
+        next_state_dist = tf.squeeze(tf.gather(target_net_output, tf.reshape(best_actions, [-1, 1, 1]),
+                                               batch_dims=1))
 
-        # Calculate next state distribution
-        next_distribution_t, next_q_values_t = self.tgt_net.both(next_states_t)
-        next_actions = tf.argmax(next_q_values_t, axis=-1)
-        next_distribution = tf.nn.softmax(next_distribution_t, axis=1)
-        next_best_distribution = tf.squeeze(tf.gather(next_distribution, tf.reshape(next_actions, [-1, 1, 1]),
-                                                      batch_dims=1))
+        # Calculate the Bellman operator T to produce Tz
+        delta_z = (self.v_max - self.v_min) / (self.n_atoms - 1)
+        support = tf.linspace(self.v_min, self.v_max, self.n_atoms)
+        Tz = tf.expand_dims(rewards_t, -1) + tf.expand_dims(tf.cast(tf.logical_not(done_mask), tf.float32),
+                                                            -1) * gamma * tf.expand_dims(support, 0)
+        Tz = tf.clip_by_value(Tz, self.v_min, self.v_max)
+        b = (Tz - self.v_min) / delta_z
+        l = tf.math.floor(b)
+        u = tf.math.floor(b)
 
-        # Calculate projection
-        projected_distribution = compute_projection(next_best_distribution, rewards_t, done_mask, self.v_min,
-                                                    self.v_max, self.n_atoms, gamma)
+        # Fix disappearing probability mass
+        eq_mask = tf.equal(l, u)
+        u_greater = tf.greater(u, 0)
+        l_less = tf.less(l, self.n_atoms - 1.0)
+        l = tf.where(tf.logical_and(eq_mask, u_greater), x=l - 1, y=l)
+        u = tf.where(tf.logical_and(eq_mask, l_less), x=u + 1, y=u)
+
+        m = tf.zeros(self.batch_size * self.n_atoms)
+        offset = tf.linspace(0.0, ((self.batch_size - 1.0) * self.n_atoms), self.batch_size)
+        offset = tf.reshape(tf.tile(tf.expand_dims(offset, -1), [1, self.n_atoms]), [-1, 1])
+        m = tf.tensor_scatter_nd_add(
+            m,
+            tf.cast(tf.reshape(l, [-1, 1]) + offset, tf.int32),
+            tf.reshape(next_state_dist * (u - b), [-1])
+        )
+        m = tf.tensor_scatter_nd_add(
+            m,
+            tf.cast(tf.reshape(u, [-1, 1]) + offset, tf.int32),
+            tf.reshape(next_state_dist * (b - l), [-1])
+        )
+        m = tf.reshape(m, [self.batch_size, self.n_atoms])
+
+        # Calculate loss
+        losses = -tf.reduce_sum(m * state_action_dist, -1)
+        losses = tf.multiply(weights, losses)
+        return tf.reduce_mean(losses, -1), losses
 
     def calc_loss(self, batch, gamma):
         states, actions, rewards, dones, next_states, weights = batch[:6]

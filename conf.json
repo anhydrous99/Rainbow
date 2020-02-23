@@ -16,17 +16,16 @@
   "dueling": false,
   "distributional" : {
     "n_atoms": 51,
-    "v": [0.0, 10.0]
+    "v": [-10.0, 10.0]
   },
   "random_seed": 4321,
 
   "runs": [
     {
       "env": "PongNoFrameskip-v4",
-      "run_name": "priority",
+      "run_name": "distributional",
       "train_frames": 5000000,
-      "train_reward": 19,
-      "dueling": false
+      "train_reward": 19
     }
   ]
 }

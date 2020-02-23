@@ -78,7 +78,7 @@ class PriorityBuffer:
         self._it_min[position] = self._max_priority ** self.alpha
 
     def _sample_proportional(self, batch_size):
-        total = self._it_sum.sum(0, len(self.buffer) - 1)
+        total = self._it_sum.sum(0, len(self.buffer) - (1 + self.n_steps))
         mass = np.random.random(size=batch_size) * total
         idx = self._it_sum.find_prefix_sum_idx(mass)
         return idx

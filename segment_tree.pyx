@@ -58,6 +58,7 @@ cdef class SumSegmentTree:
         return self.reduce(start, end)
 
     def find_prefix_sum_idx(self, np.ndarray[double, ndim=1] prefixsum):
+        assert 0 <= np.min(prefixsum)
         assert np.max(prefixsum) <= self.sum() + 1.0e-5
 
         cdef np.ndarray idx = np.ones(len(prefixsum), dtype=np.int)
@@ -65,8 +66,7 @@ cdef class SumSegmentTree:
 
         while np.any(cont):
             idx[cont] = 2 * idx[cont]
-            prefixsum_new = np.where(self._value[idx] <= prefixsum, prefixsum - self._value[idx],
-                                                     prefixsum)
+            prefixsum_new = np.where(self._value[idx] <= prefixsum, prefixsum - self._value[idx], prefixsum)
             idx = np.where(np.logical_or(self._value[idx] > prefixsum, np.logical_not(cont)), idx, idx + 1)
             prefixsum = prefixsum_new
             cont = idx < self._capacity
