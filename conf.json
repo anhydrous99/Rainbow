@@ -14,16 +14,21 @@
   "save_checkpoints": false,
   "use_double": false,
   "dueling": false,
-  "distributional" : {
-    "n_atoms": 51,
-    "v": [-10.0, 10.0]
-  },
   "random_seed": 4321,
-
   "runs": [
     {
       "env": "PongNoFrameskip-v4",
       "run_name": "distributional",
+      "train_frames": 5000000,
+      "train_reward": 19,
+      "categorical": {
+        "n_atoms": 51,
+        "v": [-10.0, 10.0]
+      }
+    },
+    {
+      "env": "PongNoFrameskip-v4",
+      "run_name": "non_distributional",
       "train_frames": 5000000,
       "train_reward": 19
     }

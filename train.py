@@ -24,19 +24,19 @@ def train(env_name='PongNoFrameskip-v4',
           use_double=True,
           use_dense=None,
           dueling=False,
-          distributional=None,
+          categorical=None,
           random_seed=None,
           index=0):
     n_atoms = None
     v_min = None
     v_max = None
-    if distributional is not None:
-        use_distributional = True
-        n_atoms = distributional['n_atoms']
-        v_min = distributional['v'][0]
-        v_max = distributional['v'][1]
+    if categorical is not None:
+        use_categorical = True
+        n_atoms = categorical['n_atoms']
+        v_min = categorical['v'][0]
+        v_max = categorical['v'][1]
     else:
-        use_distributional = False
+        use_categorical = False
     print(f'Training DQN on {env_name} environment')
     print(f'Params: gamma:{gamma}, batch_size:{batch_size}, replay_size:{replay_size}')
     print(f'        replay_start_size: {replay_start_size}, learning_rate:{learning_rate}')
@@ -44,7 +44,7 @@ def train(env_name='PongNoFrameskip-v4',
     print(f'        epsilon_start: {epsilon_start}, epsilon_final: {epsilon_final}, train_frames: {train_frames}')
     print(f'        train_rewards: {train_rewards}, n_steps: {n_steps}, save_checkpoints: {save_checkpoints}')
     print(f'        run_name: {run_name}, use_double: {use_double}, use_dense: {use_dense}, dueling: {dueling}')
-    if use_distributional:
+    if use_categorical:
         print(f'        n_atoms: {n_atoms}, v_min: {v_min}, v_max: {v_max}')
     print(f'        random_seed: {random_seed}, index: {index}')
     env = wrappers.make_env(env_name)
@@ -54,7 +54,7 @@ def train(env_name='PongNoFrameskip-v4',
     f_name = env_name + "_" + run_name if run_name is not None else env_name
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     agent = Agent(env, replay_size, optimizer, batch_size, n_steps, gamma, use_double, use_dense, dueling,
-                  use_distributional, n_atoms, v_min, v_max)
+                  use_categorical, n_atoms, v_min, v_max)
     if save_checkpoints:
         agent.load_checkpoint(f'checkpoints/{f_name}/checkpoint')
 
