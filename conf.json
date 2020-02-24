@@ -11,10 +11,10 @@
   "epsilon_start": 0.0,
   "epsilon_final": 0.0,
   "n_steps": 3,
-  "save_checkpoints": false,
+  "save_checkpoints": true,
   "use_double": true,
   "use_dueling": true,
-  "use_dense": "noisy",
+  "use_dense": "factorized_noisy",
   "priority_replay": {
     "alpha": 0.5,
     "beta": 0.4
