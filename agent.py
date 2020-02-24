@@ -8,10 +8,11 @@ import os
 class Agent:
     def __init__(self, env, replay_size, optimizer, batch_size, n_steps, gamma, use_double=True, use_dense=None,
                  dueling=False, use_categorical=False, n_atoms=None, v_min=None, v_max=None, use_priority=False,
-                 alpha=0.6, beta=0.4):
+                 alpha=0.6, beta=0.4, train_steps=5000000):
         net = dqn_model.DQN if len(env.observation_space.shape) != 1 else dqn_model.DQNNoConvolution
         self.env = env
         self.state = None
+        self.update_count = 0
         self.total_reward = 0.0
         self.n_steps = n_steps
         self.use_double = use_double
@@ -32,6 +33,7 @@ class Agent:
         self.optimizer = optimizer
         self.batch_size = batch_size
         self.use_categorical = use_categorical
+        self.train_steps = train_steps
         self._reset()
 
     def _reset(self):
@@ -179,7 +181,8 @@ class Agent:
 
     def step(self, gamma, update_exp_weights=True):
         indices = None
-        batch = self.exp_buffer.sample(self.batch_size, self.beta)
+        beta = min(1.0, self.update_count / (self.train_steps * (1.0 - self.beta)) + self.beta)
+        batch = self.exp_buffer.sample(self.batch_size, beta)
         if self.use_priority:
             indices = batch[6]
         with tf.GradientTape() as tape:
@@ -188,6 +191,7 @@ class Agent:
         self.optimizer.apply_gradients(zip(gradient, self.params))
         if self.use_priority and update_exp_weights:
             self.exp_buffer.update_weights(indices, losses.numpy())
+        self.update_count += 1
 
     def buffer_size(self):
         return len(self.exp_buffer)
