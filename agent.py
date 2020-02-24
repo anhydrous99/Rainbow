@@ -7,7 +7,8 @@ import os
 
 class Agent:
     def __init__(self, env, replay_size, optimizer, batch_size, n_steps, gamma, use_double=True, use_dense=None,
-                 dueling=False, use_categorical=False, n_atoms=None, v_min=None, v_max=None):
+                 dueling=False, use_categorical=False, n_atoms=None, v_min=None, v_max=None, use_priority=False,
+                 alpha=0.6, beta=0.4):
         net = dqn_model.DQN if len(env.observation_space.shape) != 1 else dqn_model.DQNNoConvolution
         self.env = env
         self.state = None
@@ -17,7 +18,12 @@ class Agent:
         self.n_atoms = n_atoms
         self.v_min = v_min
         self.v_max = v_max
-        self.exp_buffer = xp.PriorityBuffer(replay_size, gamma, n_steps)
+        self.beta = beta
+        self.use_priority = use_priority
+        if use_priority:
+            self.exp_buffer = xp.PriorityBuffer(replay_size, gamma, n_steps, alpha)
+        else:
+            self.exp_buffer = xp.ExperienceBuffer(replay_size, gamma, n_steps)
         self.net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense, dueling=dueling,
                        use_distributional=use_categorical, n_atoms=n_atoms, v_min=v_min, v_max=v_max)
         self.tgt_net = net(env.observation_space.shape, env.action_space.n, use_dense=use_dense, dueling=dueling,
@@ -155,26 +161,32 @@ class Agent:
         return tf.reduce_mean(losses, -1), losses
 
     def calc_loss(self, batch, gamma):
-        states, actions, rewards, dones, next_states, weights = batch[:6]
+        if self.use_priority:
+            states, actions, rewards, dones, next_states, weights = batch[:6]
+            weights_t = tf.convert_to_tensor(weights)
+        else:
+            states, actions, rewards, dones, next_states = batch[:5]
+            weights_t = tf.ones_like(rewards)
 
         states_t = tf.convert_to_tensor(states)
         next_states_t = tf.convert_to_tensor(next_states)
         actions_t = tf.convert_to_tensor(actions)
         rewards_t = tf.convert_to_tensor(rewards)
         done_mask = tf.convert_to_tensor(dones, dtype=bool)
-        weights_t = tf.convert_to_tensor(weights)
         if self.use_categorical:
             return self.ll_dist(gamma, states_t, next_states_t, actions_t, rewards_t, done_mask, weights_t)
         return self.ll(gamma, states_t, next_states_t, actions_t, rewards_t, done_mask, weights_t)
 
     def step(self, gamma, update_exp_weights=True):
-        batch = self.exp_buffer.sample(self.batch_size)
-        indices = batch[6]
+        indices = None
+        batch = self.exp_buffer.sample(self.batch_size, self.beta)
+        if self.use_priority:
+            indices = batch[6]
         with tf.GradientTape() as tape:
             loss_t, losses = self.calc_loss(batch, gamma)
         gradient = tape.gradient(loss_t, self.params)
         self.optimizer.apply_gradients(zip(gradient, self.params))
-        if update_exp_weights:
+        if self.use_priority and update_exp_weights:
             self.exp_buffer.update_weights(indices, losses.numpy())
 
     def buffer_size(self):

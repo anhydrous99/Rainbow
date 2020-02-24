@@ -4,6 +4,10 @@ from train import train
 from joblib import Parallel, delayed
 
 
+def json_checker(ret_obj, json_obj, field):
+    return json_obj[field] if field in json_obj else ret_obj
+
+
 def main():
     parser = argparse.ArgumentParser(description='Deep Q-network (DQN)')
     parser.add_argument('--conf', type=str, default='conf.json')
@@ -24,33 +28,34 @@ def main():
     n_steps = conf_json['n_steps']
     save_checkpoints = conf_json['save_checkpoints']
     use_double = conf_json['use_double']
-    use_dense = conf_json['use_dense'] if 'use_dense' in conf_json else None
-    random_seed = conf_json['random_seed'] if 'random_seed' in conf_json else None
-    dueling = conf_json['dueling'] if 'dueling' in conf_json else False
-    categorical = conf_json['categorical'] if 'categorical' in conf_json else None
+    use_dense = json_checker(None, conf_json, 'use_dense')
+    random_seed = json_checker(None, conf_json, 'random_seed')
+    dueling = json_checker(False, conf_json, 'use_dueling')
+    priority_replay = json_checker(None, conf_json, 'priority_replay')
+    categorical = json_checker(None, conf_json, 'categorical')
     runs = conf_json['runs']
 
     def fun(s_args):
         (f_run, f_gamma, f_batch_size, f_replay_size, f_learning_rate, f_sync_target_frames, f_replay_start_size,
          f_epsilon_decay_last_frame, f_epsilon_start, f_epsilon_final, f_n_steps, f_save_checkpoints, f_use_double,
-         f_use_dense, f_dueling, f_categorical, f_random_seed, f_index) = s_args
+         f_use_dense, f_dueling, f_priority_replay, f_categorical, f_random_seed, f_index) = s_args
         env_str = f_run['env']
-        n_gamma = f_run['gamma'] if 'gamma' in f_run else f_gamma
-        n_batch_size = f_run['batch_size'] if 'batch_size' in f_run else f_batch_size
-        n_replay_size = f_run['replay_size'] if 'replay_size' in f_run else f_replay_size
-        n_learning_rate = f_run['learning_rate'] if 'learning_rate' in f_run else f_learning_rate
-        n_sync_target_frames = f_run['sync_target_frames'] if 'sync_target_frames' in f_run else f_sync_target_frames
-        n_replay_start_size = f_run['replay_start_size'] if 'replay_start_size' in f_run else f_replay_start_size
-        n_epsilon_decay_last_frame = f_run[
-            'epsilon_decay_last_frame'] if 'epsilon_decay_last_frame' in f_run else f_epsilon_decay_last_frame
-        n_epsilon_start = f_run['epsilon_start'] if 'epsilon_start' in f_run else f_epsilon_start
-        n_epsilon_final = f_run['epsilon_final'] if 'epsilon_final' in f_run else f_epsilon_final
-        nn_steps = f_run['n_steps'] if 'n_steps' in f_run else f_n_steps
-        run_name = f_run['run_name'] if 'run_name' in f_run else None
-        n_use_double = f_run['use_double'] if 'use_double' in f_run else f_use_double
-        n_use_dense = f_run['use_dense'] if 'use_dense' in f_run else f_use_dense
-        n_dueling = f_run['dueling'] if 'dueling' in f_run else f_dueling
-        n_categorical = f_run['categorical'] if 'categorical' in f_run else f_categorical
+        n_gamma = json_checker(f_gamma, f_run, 'gamma')
+        n_batch_size = json_checker(f_batch_size, f_run, 'batch_size')
+        n_replay_size = json_checker(f_replay_size, f_run, 'replay_size')
+        n_learning_rate = json_checker(f_learning_rate, f_run, 'learning_rate')
+        n_sync_target_frames = json_checker(f_sync_target_frames, f_run, 'sync_target_frames')
+        n_replay_start_size = json_checker(f_replay_start_size, f_run, 'replay_start_size')
+        n_epsilon_decay_last_frame = json_checker(f_epsilon_decay_last_frame, f_run, 'epsilon_decay_last_frame')
+        n_epsilon_start = json_checker(f_epsilon_start, f_run, 'epsilon_start')
+        n_epsilon_final = json_checker(f_epsilon_final, f_run, 'epsilon_final')
+        nn_steps = json_checker(f_n_steps, f_run, 'n_steps')
+        run_name = json_checker(None, f_run, 'run_name')
+        n_use_double = json_checker(f_use_double, f_run, 'use_double')
+        n_use_dense = json_checker(f_use_dense, f_run, 'use_dense')
+        n_dueling = json_checker(f_dueling, f_run, 'use_dueling')
+        n_priority_replay = json_checker(f_priority_replay, f_run, 'priority_replay')
+        n_categorical = json_checker(f_categorical, f_run, 'categorical')
         train_frames = None
         train_reward = None
         if 'train_frames' in f_run:
@@ -75,6 +80,7 @@ def main():
               n_use_double,
               n_use_dense,
               n_dueling,
+              n_priority_replay,
               n_categorical,
               f_random_seed,
               f_index)
@@ -86,13 +92,13 @@ def main():
         for index, run in enumerate(runs):
             args.append((run, gamma, batch_size, replay_size, learning_rate, sync_target_frames, replay_start_size,
                          epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps, save_checkpoints, use_double,
-                         use_dense, dueling, categorical, random_seed, index))
+                         use_dense, dueling, priority_replay, categorical, random_seed, index))
         Parallel(n_jobs=concurrent_processes, prefer='processes')(delayed(fun)(arg) for arg in args)
     else:
         for index, run in enumerate(runs):
             args = (run, gamma, batch_size, replay_size, learning_rate, sync_target_frames, replay_start_size,
                     epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps, save_checkpoints, use_double,
-                    use_dense, dueling, categorical, random_seed, index)
+                    use_dense, dueling, priority_replay, categorical, random_seed, index)
             fun(args)
 
 

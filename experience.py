@@ -1,3 +1,4 @@
+import abc
 import collections
 import numpy as np
 from segment_tree import SumSegmentTree, MinSegmentTree
@@ -9,12 +10,32 @@ def ar(array, **kwargs):
     return np.array(array, **kwargs)
 
 
-class ExperienceBuffer:
+class BufferBase(abc.ABC):
     def __init__(self, capacity, gamma=0.99, n_steps=3):
-        self.buffer = collections.deque(maxlen=capacity)
         self.gamma = gamma
         self.n_steps = n_steps
         self.capacity = capacity
+
+    @abc.abstractmethod
+    def __len__(self):
+        pass
+
+    @abc.abstractmethod
+    def append(self, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def sample(self, **kwargs):
+        pass
+
+    def update_weights(self, batch_indices, batch_priorities):
+        pass
+
+
+class ExperienceBuffer(BufferBase):
+    def __init__(self, capacity, gamma=0.99, n_steps=3):
+        super(ExperienceBuffer, self).__init__(capacity, gamma, n_steps)
+        self.buffer = collections.deque(maxlen=capacity)
 
     def __len__(self):
         return len(self.buffer)
@@ -22,7 +43,7 @@ class ExperienceBuffer:
     def append(self, experience):
         self.buffer.append(experience)
 
-    def sample(self, batch_size):
+    def sample(self, batch_size, beta=None):
         indices = np.random.choice(len(self.buffer) - self.n_steps, batch_size, replace=False)
         states = []
         actions = []
@@ -49,14 +70,12 @@ class ExperienceBuffer:
         return ar(states), ar(actions), ar(rewards, dtype=np.float32), ar(dones, dtype=np.uint8), ar(next_states)
 
 
-class PriorityBuffer:
+class PriorityBuffer(BufferBase):
     def __init__(self, capacity, gamma=0.99, n_steps=2, alpha=0.6):
+        super(PriorityBuffer, self).__init__(capacity, gamma, n_steps)
         self.buffer = []
         self.position = 0
         self.alpha = alpha
-        self.gamma = gamma
-        self.n_steps = n_steps
-        self.capacity = capacity
         it_cap = 1
         while it_cap < capacity:
             it_cap *= 2

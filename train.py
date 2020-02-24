@@ -24,19 +24,25 @@ def train(env_name='PongNoFrameskip-v4',
           use_double=True,
           use_dense=None,
           dueling=False,
+          priority_replay=None,
           categorical=None,
           random_seed=None,
           index=0):
-    n_atoms = None
-    v_min = None
-    v_max = None
+    n_atoms = v_min = v_max = None
+    use_categorical = False
     if categorical is not None:
         use_categorical = True
         n_atoms = categorical['n_atoms']
         v_min = categorical['v'][0]
         v_max = categorical['v'][1]
-    else:
-        use_categorical = False
+
+    alpha = beta = None
+    use_priority_replay = False
+    if priority_replay is not None:
+        use_priority_replay = True
+        alpha = priority_replay['alpha']
+        beta = priority_replay['beta']
+
     print(f'Training DQN on {env_name} environment')
     print(f'Params: gamma:{gamma}, batch_size:{batch_size}, replay_size:{replay_size}')
     print(f'        replay_start_size: {replay_start_size}, learning_rate:{learning_rate}')
@@ -45,7 +51,9 @@ def train(env_name='PongNoFrameskip-v4',
     print(f'        train_rewards: {train_rewards}, n_steps: {n_steps}, save_checkpoints: {save_checkpoints}')
     print(f'        run_name: {run_name}, use_double: {use_double}, use_dense: {use_dense}, dueling: {dueling}')
     if use_categorical:
-        print(f'        n_atoms: {n_atoms}, v_min: {v_min}, v_max: {v_max}')
+        print(f'        categorical - n_atoms: {n_atoms}, v_min: {v_min}, v_max: {v_max}')
+    if use_priority_replay:
+        print(f'        priority buffer - alpha: {alpha} beta: {beta}')
     print(f'        random_seed: {random_seed}, index: {index}')
     env = wrappers.make_env(env_name)
     if random_seed is not None:

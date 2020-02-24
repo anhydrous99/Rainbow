@@ -13,7 +13,11 @@
   "n_steps": 1,
   "save_checkpoints": false,
   "use_double": false,
-  "dueling": false,
+  "use_dueling": false,
+  "priority_replay": {
+    "alpha": 0.6,
+    "beta": 0.4
+  },
   "random_seed": 4321,
   "runs": [
     {
