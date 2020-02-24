@@ -63,7 +63,7 @@ class DQN(DQNBase):
             val = dense(512, activation='relu')(x)
             val = dense(n_atoms if use_distributional else 1)(val)
 
-            x = DuelingAggregator()([adv, val])
+            x = DuelingAggregator(n_atoms)([adv, val])
         else:
             x = dense(512, activation='relu')(x)
             x = dense(n_actions * n_atoms if use_distributional else n_actions)(x)

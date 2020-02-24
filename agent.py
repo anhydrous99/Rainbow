@@ -156,6 +156,7 @@ class Agent:
             tf.reshape(next_state_dist * (b - l), [-1])
         )
         m = tf.reshape(m, [self.batch_size, self.n_atoms])
+        m = tf.stop_gradient(m)
 
         # Calculate loss
         losses = -tf.reduce_sum(m * state_action_dist, -1)

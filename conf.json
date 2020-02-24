@@ -1,19 +1,19 @@
 {
   "multiprocessing": true,
-  "concurrent_processes": 3,
+  "concurrent_processes": 2,
   "gamma": 0.99,
   "batch_size": 32,
   "replay_size": 1000000,
-  "learning_rate": 0.00008,
+  "learning_rate": 0.0000625,
   "sync_target_frames": 32000,
   "replay_start_size": 80000,
   "epsilon_decay_last_frame": 1000000,
-  "epsilon_start": 0,
-  "epsilon_final": 0,
+  "epsilon_start": 0.0,
+  "epsilon_final": 0.0,
   "n_steps": 3,
   "save_checkpoints": false,
-  "use_double": false,
-  "use_dueling": false,
+  "use_double": true,
+  "use_dueling": true,
   "use_dense": "factorized_noisy",
   "priority_replay": {
     "alpha": 0.5,
@@ -26,34 +26,14 @@
   "random_seed": 4321,
   "runs": [
     {
-      "env": "AlienNoFrameskip-v4",
-      "run_name": "pong_rainbow",
-      "train_frames": 5000000
+      "env": "SpaceInvadersNoFrameskip-v4",
+      "run_name": "rainbow",
+      "train_frames": 200000000
     },
     {
-      "env": "AmidarNoFrameskip-v4",
-      "run_name": "pong_rainbow",
-      "train_frames": 5000000
-    },
-    {
-      "env": "AssaultNoFrameskip-v4",
-      "run_name": "pong_rainbow",
-      "train_frames": 5000000
-    },
-    {
-      "env": "AlienNoFrameskip-v4",
-      "run_name": "pong_rainbow",
-      "train_frames": 5000000
-    },
-    {
-      "env": "AstrixNoFrameskip-v4",
-      "run_name": "pong_rainbow",
-      "train_frames": 500000
-    },
-    {
-      "env": "AsteroidsNoFrameskip-v4",
-      "run_name": "pong_rainbow",
-      "train_frames": 500000
+      "env": "JamesbondNoFrameskip-v4",
+      "run_name": "rainbow",
+      "train_frames": 200000000
     }
   ]
 }

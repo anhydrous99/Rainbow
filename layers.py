@@ -182,13 +182,24 @@ class FactorizedNoisyDense(NoisyDense):
 
 
 class DuelingAggregator(Layer):
-    def __init__(self, **kwargs):
+    def __init__(self, n_atoms=None, **kwargs):
         super(DuelingAggregator, self).__init__(**kwargs)
+        self.n_atoms = n_atoms
 
     def call(self, inputs, **kwargs):  # pylint: disable=unused-argument
         adv, val = inputs
-        adv_m = tf.math.reduce_mean(adv, axis=1, keepdims=True)
-        adv_m = tf.tile(adv_m, [1, adv.shape[1]])
-        x = tf.math.subtract(adv, adv_m)
-        x = tf.math.add(val, x)
+        n_elements = adv.shape[1]
+        if self.n_atoms is not None:
+            adv = tf.reshape(adv, [-1, n_elements // self.n_atoms, self.n_atoms])
+            adv_m = tf.math.reduce_mean(adv, axis=1, keepdims=True)
+            adv_m = tf.tile(adv_m, [1, n_elements // self.n_atoms, 1])
+            val = tf.tile(tf.expand_dims(val, 1), [1, n_elements // self.n_atoms, 1])
+            x = tf.math.subtract(adv, adv_m)
+            x = tf.math.add(val, x)
+            x = tf.reshape(x, [-1, n_elements])
+        else:
+            adv_m = tf.math.reduce_mean(adv, axis=1, keepdims=True)
+            adv_m = tf.tile(adv_m, [1, adv.shape[1]])
+            x = tf.math.subtract(adv, adv_m)
+            x = tf.math.add(val, x)
         return x
