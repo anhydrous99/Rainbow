@@ -111,11 +111,10 @@ def train(env_name='PongNoFrameskip-v4',
             agent.sync_weights()
         agent.step(gamma, True if update_count % 1000 == 0 else False)
         update_count += 1
-        if update_count % 50 == 0:
-            arr = np.array(total_rewards[-50:])
-            rewards_mean_std.append({'rewards_mean': np.mean(arr),
-                                     'rewards_std': np.std(arr),
-                                     'step': update_count})
+        arr = np.array(total_rewards[-1:])
+        rewards_mean_std.append({'rewards_mean': np.mean(arr),
+                                 'rewards_std': np.std(arr),
+                                 'step': update_count})
     plot.directory_check('./plots')
     plot.plot(rewards_mean_std, f'./plots/{f_name}.png', f_name)
     plot.directory_check('./data')
