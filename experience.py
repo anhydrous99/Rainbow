@@ -61,13 +61,16 @@ class ExperienceBuffer(BufferBase):
                 reward += self.buffer[index + sub_index][2] * (self.gamma ** sub_index)
                 if self.buffer[index + sub_index][3]:
                     break
-            states.append(current_state)
+            states.append(ar(current_state, dtype=np.float32))
             actions.append(current_action)
             rewards.append(reward)
             dones.append(current_done)
-            next_states.append(next_state)
+            next_states.append(ar(next_state, dtype=np.float32))
 
-        return ar(states), ar(actions), ar(rewards, dtype=np.float32), ar(dones, dtype=np.uint8), ar(next_states)
+        states_np = np.stack(states, 0) / 255.0
+        next_states_np = np.stack(next_states, 0) / 255.0
+
+        return states_np, ar(actions), ar(rewards, dtype=np.float32), ar(dones, dtype=np.uint8), next_states_np
 
 
 class PriorityBuffer(BufferBase):
@@ -122,18 +125,22 @@ class PriorityBuffer(BufferBase):
                 reward += self.buffer[index + sub_index][2] * (self.gamma ** sub_index)
                 if self.buffer[index + sub_index][3]:
                     break
-            states.append(current_state)
+            states.append(ar(current_state, dtype=np.float32))
             actions.append(current_action)
             rewards.append(reward)
             dones.append(current_done)
-            next_states.append(next_state)
+            next_states.append(ar(next_state, dtype=np.float32))
 
         sm = self._it_sum.sum()
         p_min = self._it_min.min() / sm
         max_weight = (p_min * len(self.buffer)) ** (-beta)
         p_sample = self._it_sum[indices] / sm
         weights = (p_sample * len(self.buffer)) ** (-beta) / max_weight
-        return ar(states), ar(actions), ar(rewards, dtype=np.float32), ar(dones, dtype=np.uint8), ar(next_states), \
+
+        states_np = np.stack(states, 0) / 255.0
+        next_states_np = np.stack(next_states, 0) / 255.0
+
+        return states_np, ar(actions), ar(rewards, dtype=np.float32), ar(dones, dtype=np.uint8), next_states_np, \
                ar(weights, dtype=np.float32), indices
 
     def update_weights(self, batch_indices, batch_priorities):

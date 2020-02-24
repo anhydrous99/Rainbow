@@ -1,3 +1,4 @@
+from collections import deque
 import numpy as np
 import gym
 import cv2
@@ -107,52 +108,45 @@ class ProcessFrame84(gym.ObservationWrapper):
         return x_t.astype(np.uint8)
 
 
-class BufferWrapper(gym.ObservationWrapper):
-    def __init__(self, env, n_steps, dtype=np.float32):
-        super(BufferWrapper, self).__init__(env)
-        self.dtype = dtype
-        old_space = env.observation_space
-        self.buffer = None
-        self.n_steps = n_steps
-        self.observation_space = gym.spaces.Box(old_space.low.repeat(n_steps, axis=2),
-                                                old_space.high.repeat(n_steps, axis=2),
-                                                dtype=dtype)
+class FrameStack(gym.Wrapper):
+    def __init__(self, env, k):
+        gym.Wrapper.__init__(self, env)
+        self.k = k
+        self.frames = deque([], maxlen=k)
+        shp = env.observation_space.shape
+        self.observation_space = gym.spaces.Box(low=0, high=255, shape=(shp[0], shp[1], shp[2] * k),
+                                                dtype=env.observation_space.dtype)
 
     def reset(self):
-        self.buffer = np.zeros(self.observation_space.low.shape, dtype=self.dtype)
-        return self.observation(self.env.reset())
+        obs = self.env.reset()
+        for _ in range(self.k):
+            self.frames.append(obs)
+        return self._get_ob()
 
-    def observation(self, observation):
-        self.buffer[:, :, :-1] = self.buffer[:, :, 1:]
-        self.buffer[:, :, -1] = observation.squeeze(-1)
-        return self.buffer
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        self.frames.append(obs)
+        return self._get_ob(), reward, done, info
 
-
-class ScaledFloatFrame(gym.ObservationWrapper):
-    def __init__(self, env):
-        gym.ObservationWrapper.__init__(self, env)
-        self.observation_space = gym.spaces.Box(low=0, high=1.0,
-                                                shape=env.observation_space.shape,
-                                                dtype=np.float32)
-
-    def observation(self, observation):
-        return np.array(observation).astype(np.float32) / 255.0
+    def _get_ob(self):
+        assert len(self.frames) == self.k
+        return LazyFrames(list(self.frames))
 
 
-class CastFrame(gym.ObservationWrapper):
-    def __init__(self, env):
-        gym.ObservationWrapper.__init__(self, env)
-        self.observation_space = env.observation_space
-        self.observation_space.dtype = np.float32
+class LazyFrames(object):
+    def __init__(self, frames):
+        self._frames = frames
 
-    def observation(self, observation):
-        return observation.astype(np.float32)
+    def __array__(self, dtype=None):
+        out = np.concatenate(self._frames, axis=-1)
+        if dtype is not None:
+            out = out.astype(dtype)
+        return out
 
 
 def make_env(env_name):
     env = gym.make(env_name)
     if len(env.observation_space.shape) == 1:
-        env = CastFrame(env)
         return env
     env = NoopResetEnv(env)
     env = MaxAndSkipEnv(env)
@@ -160,5 +154,5 @@ def make_env(env_name):
         env = FireResetEnv(env)
     env = ProcessFrame84(env)
     env = ClipRewardEnv(env)
-    env = BufferWrapper(env, 4)
-    return ScaledFloatFrame(env)
+    env = FrameStack(env, 4)
+    return env

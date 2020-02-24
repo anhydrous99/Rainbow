@@ -46,7 +46,7 @@ class Agent:
         if np.random.random() < epsilon:
             action = self.env.action_space.sample()
         else:
-            state_a = np.array([self.state], copy=False)
+            state_a = np.expand_dims(np.array(self.state, copy=False, dtype=np.float32), 0) / 255.0
             state_v = tf.convert_to_tensor(state_a)
             if self.use_categorical:
                 q_vals_v = self.net.q_values(state_v)
