@@ -57,10 +57,10 @@ class DQN(DQNBase):
         x = keras.layers.Flatten()(x)
 
         if dueling:
-            adv = dense(256, activation='relu')(x)
+            adv = dense(512, activation='relu')(x)
             adv = dense(n_actions * n_atoms if use_distributional else n_actions)(adv)
 
-            val = dense(256, activation='relu')(x)
+            val = dense(512, activation='relu')(x)
             val = dense(n_atoms if use_distributional else 1)(val)
 
             x = DuelingAggregator(n_atoms)([adv, val])
