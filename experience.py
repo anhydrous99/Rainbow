@@ -74,7 +74,7 @@ class ExperienceBuffer(BufferBase):
 
 
 class PriorityBuffer(BufferBase):
-    def __init__(self, capacity, gamma=0.99, n_steps=2, alpha=0.6):
+    def __init__(self, capacity, gamma=0.99, n_steps=2, alpha=0.5):
         super(PriorityBuffer, self).__init__(capacity, gamma, n_steps)
         self.buffer = []
         self.position = 0
