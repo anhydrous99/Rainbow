@@ -17,6 +17,20 @@ My reason for creating this project really is to learn about Reinforcement learn
 Unfortunately, I don't have the resources to test all 47 Atari games tested in the Rainbow paper over the 200 million frames.
 Still, I will try to get similar results in a couple of games then compare with the results, of that games, with the Rainbow paper.
 
+## Requirements 
+
+* Python greater than or equal to 3.7
+* Tensorflow greater than or equal to 2.0
+* matplotlib
+* pandas
+* seaborn
+* gym
+* atari-py
+* OpenCV
+* Cython
+* NumPy
+* GCC/VSCompiler
+
 ## Comparison
 
 Here will the future comparison between the Rainbow paper and this project's results.
