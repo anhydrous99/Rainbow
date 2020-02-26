@@ -1,22 +1,25 @@
 import numpy as np
 cimport numpy as np
 
+from libc.stdint cimport INT32_MIN, int32_t
+cdef int32_t min_integer = INT32_MIN
+
 cdef class BaseTree:
-    cdef int _capacity
+    cdef int32_t _capacity
     cdef np.ndarray _value
 
-    def __init__(self, int capacity, float fill_value):
+    def __init__(self, int32_t capacity, float fill_value):
         assert capacity > 0 and capacity & (capacity - 1) == 0, "Capacity must be positive and a power of 2."
         assert fill_value >= 0, "Fill values must be positive."
         self._capacity = capacity
         self._value = np.full(capacity * 2, fill_value, dtype=np.float32)
 
-    def __getitem__(self, np.ndarray[long, ndim=1] idx):
+    def __getitem__(self, np.ndarray[int32_t, ndim=1] idx):
         assert np.max(idx) < self._capacity
         assert 0 <= np.min(idx)
         return self._value[self._capacity + idx]
 
-    cdef _calc_indexes_update(self, long idx, float value):
+    cdef _calc_indexes_update(self, int32_t idx, float value):
         idx += self._capacity
         self._value[idx] = value
         return idx // 2
@@ -25,13 +28,13 @@ cdef class SumSegmentTree(BaseTree):
     def __init__(self, int capacity):
         super(SumSegmentTree, self).__init__(capacity, 0.0)
 
-    def __setitem__(self, long idx, float val):
+    def __setitem__(self, int32_t idx, float val):
         idx = self._calc_indexes_update(idx, val)
         while idx > 0:
             self._value[idx] = self._value[2 * idx] + self._value[2 * idx + 1]
             idx = idx // 2
 
-    cdef _reduce_helper(self, int start, int end, int node, int node_start, int node_end):
+    cdef _reduce_helper(self, int32_t start, int32_t end, int32_t node, int32_t node_start, int32_t node_end):
         if start == node_start and end == node_end:
             return self._value[node]
         cdef int mid = (node_start + node_end) // 2
@@ -44,15 +47,15 @@ cdef class SumSegmentTree(BaseTree):
                 return self._reduce_helper(start, mid, 2 * node, node_start, mid) + \
                        self._reduce_helper(mid + 1, end, 2 * node + 1, mid + 1, node_end)
 
-    cdef reduce(self, int start=0, int end=-2147483647):
-        if end is -2147483647:
+    cdef reduce(self, int32_t start=0, int32_t end=min_integer):
+        if end is min_integer:
             end = self._capacity
         if end < 0:
             end += self._capacity
         end -= 1
         return self._reduce_helper(start, end, 1, 0, self._capacity - 1)
 
-    cpdef sum(self, int start=0, int end=-2147483647):
+    cpdef sum(self, int32_t start=0, int32_t end=min_integer):
         return self.reduce(start, end)
 
     def find_prefix_sum_idx(self, np.ndarray[double, ndim=1] prefixsum):
@@ -71,16 +74,16 @@ cdef class SumSegmentTree(BaseTree):
         return idx - self._capacity
 
 cdef class MinSegmentTree(BaseTree):
-    def __init__(self, int capacity):
+    def __init__(self, int32_t capacity):
         super(MinSegmentTree, self).__init__(capacity, float('inf'))
 
-    def __setitem__(self, long idx, float val):
+    def __setitem__(self, int32_t idx, float val):
         idx = self._calc_indexes_update(idx, val)
         while idx > 0:
             self._value[idx] = np.minimum(self._value[2 * idx], self._value[2 * idx + 1])
             idx = idx // 2
 
-    cdef _reduce_helper(self, int start, int end, int node, int node_start, int node_end):
+    cdef _reduce_helper(self, int32_t start, int32_t end, int32_t node, int32_t node_start, int32_t node_end):
         if start == node_start and end == node_end:
             return self._value[node]
         cdef int mid = (node_start + node_end) // 2
@@ -95,13 +98,13 @@ cdef class MinSegmentTree(BaseTree):
                     self._reduce_helper(mid + 1, end, 2 * node + 1, mid + 1, node_end)
             )
 
-    cdef reduce(self, int start=0, int end=-2147483647):
-        if end is -2147483647:
+    cdef reduce(self, int32_t start=0, int32_t end=min_integer):
+        if end is min_integer:
             end = self._capacity
         if end < 0:
             end += self._capacity
         end -= 1
         return self._reduce_helper(start, end, 1, 0, self._capacity - 1)
 
-    def min(self, int start=0, int end=-2147483647):
+    def min(self, int32_t start=0, int32_t end=min_integer):
         return self.reduce(start, end)
