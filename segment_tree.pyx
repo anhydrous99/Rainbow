@@ -14,7 +14,7 @@ cdef class BaseTree:
         self._capacity = capacity
         self._value = np.full(capacity * 2, fill_value, dtype=np.float32)
 
-    def __getitem__(self, np.ndarray[int32_t, ndim=1] idx):
+    def __getitem__(self, np.ndarray[long, ndim=1] idx):
         assert np.max(idx) < self._capacity
         assert 0 <= np.min(idx)
         return self._value[self._capacity + idx]
