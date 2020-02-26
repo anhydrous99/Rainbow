@@ -1,37 +1,35 @@
 import numpy as np
 cimport numpy as np
 
-cdef unique(np.ndarray[long, ndim=1] sorted_array):
-    if len(sorted_array) == 1:
-        return sorted_array
-    left = sorted_array[:-1]
-    right = sorted_array[1:]
-    cdef np.ndarray uniques = np.append(right != left, True)
-    return sorted_array[uniques]
-
-cdef class SumSegmentTree:
+cdef class BaseTree:
     cdef int _capacity
     cdef np.ndarray _value
 
-    def __init__(self, int capacity):
+    def __init__(self, int capacity, float fill_value):
         assert capacity > 0 and capacity & (capacity - 1) == 0, "Capacity must be positive and a power of 2."
+        assert fill_value >= 0, "Fill values must be positive."
         self._capacity = capacity
-        self._value = np.full(capacity * 2, 0.0, dtype=np.float32)
+        self._value = np.full(capacity * 2, fill_value, dtype=np.float32)
 
-    def __setitem__(self, int idx, float val):
-        idxs = idx + self._capacity
-        self._value[idxs] = val
-        if isinstance(idxs, int) or isinstance(idxs, np.int32) or isinstance(idxs, np.int64):
-            idxs = np.array([idxs])
-        idxs = unique(idxs // 2)
-        while len(idxs) > 1 or idxs[0] > 0:
-            self._value[idxs] = self._value[2 * idxs] + self._value[2 * idxs + 1]
-            idxs = unique(idxs // 2)
-
-    def __getitem__(self, idx):
+    def __getitem__(self, np.ndarray[long, ndim=1] idx):
         assert np.max(idx) < self._capacity
         assert 0 <= np.min(idx)
         return self._value[self._capacity + idx]
+
+    cdef _calc_indexes_update(self, long idx, float value):
+        idx += self._capacity
+        self._value[idx] = value
+        return idx // 2
+
+cdef class SumSegmentTree(BaseTree):
+    def __init__(self, int capacity):
+        super(SumSegmentTree, self).__init__(capacity, 0.0)
+
+    def __setitem__(self, long idx, float val):
+        idx = self._calc_indexes_update(idx, val)
+        while idx > 0:
+            self._value[idx] = self._value[2 * idx] + self._value[2 * idx + 1]
+            idx = idx // 2
 
     cdef _reduce_helper(self, int start, int end, int node, int node_start, int node_end):
         if start == node_start and end == node_end:
@@ -72,29 +70,15 @@ cdef class SumSegmentTree:
             cont = idx < self._capacity
         return idx - self._capacity
 
-cdef class MinSegmentTree:
-    cdef int _capacity
-    cdef np.ndarray _value
-
+cdef class MinSegmentTree(BaseTree):
     def __init__(self, int capacity):
-        assert capacity > 0 and capacity & (capacity - 1) == 0, "Capacity must be positive and a power of 2."
-        self._capacity = capacity
-        self._value = np.full(capacity * 2, float('inf'), dtype=np.float32)
+        super(MinSegmentTree, self).__init__(capacity, float('inf'))
 
-    def __setitem__(self, int idx, float val):
-        idxs = idx + self._capacity
-        self._value[idxs] = val
-        if isinstance(idxs, int) or isinstance(idxs, np.int32) or isinstance(idxs, np.int64):
-            idxs = np.array([idxs])
-        idxs = unique(idxs // 2)
-        while len(idxs) > 1 or idxs[0] > 0:
-            self._value[idxs] = np.minimum(self._value[2 * idxs], self._value[2 * idxs + 1])
-            idxs = unique(idxs // 2)
-
-    def __getitem__(self, idx):
-        assert np.max(idx) < self._capacity
-        assert 0 <= np.min(idx)
-        return self._value[self._capacity + idx]
+    def __setitem__(self, long idx, float val):
+        idx = self._calc_indexes_update(idx, val)
+        while idx > 0:
+            self._value[idx] = np.minimum(self._value[2 * idx], self._value[2 * idx + 1])
+            idx = idx // 2
 
     cdef _reduce_helper(self, int start, int end, int node, int node_start, int node_end):
         if start == node_start and end == node_end:
