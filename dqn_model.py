@@ -96,7 +96,7 @@ class DQNNoConvolution(DQNBase):
             val = dense(25, activation='relu')(val)
             val = dense(n_atoms if use_distributional else 1)(val)
 
-            x = DuelingAggregator()([adv, val])
+            x = DuelingAggregator(n_atoms)([adv, val])
         else:
             x = dense(50, activation='relu')(x)
             x = dense(50, activation='relu')(x)
