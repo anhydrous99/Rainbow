@@ -12,5 +12,11 @@ The improvements include
 * Distributional RL - (https://arxiv.org/abs/1707.06887)
 * Noisy Nets - (https://arxiv.org/abs/1706.10295)
 
-My reason for creating this project is to mimic the Rainbow paper as a basis in knowledge and code for my 
-future academic pursuits in RL. 
+My reason for creating this project really is to learn about Reinforcement learning and to use it as a base for future research into DQN with the goal to understand these concepts and, at the same time, create a more capable Agent.
+
+Unfortunately, I don't have the resources to test all 47 Atari games tested in the Rainbow paper over the 200 million frames.
+Still, I will try to get similar results in a couple of games then compare with the results, of that games, with the Rainbow paper.
+
+## Comparison
+
+Here will the future comparison between the Rainbow paper and this project's results.
