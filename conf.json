@@ -3,15 +3,15 @@
   "concurrent_processes": 2,
   "gamma": 0.99,
   "batch_size": 32,
-  "replay_size": 100000,
-  "learning_rate": 0.0001,
-  "sync_target_frames": 1000,
-  "replay_start_size": 10000,
+  "replay_size": 1000000,
+  "learning_rate": 0.0000625,
+  "sync_target_frames": 32000,
+  "replay_start_size": 80000,
   "epsilon_decay_last_frame": 100000,
   "epsilon_start": 0.0,
   "epsilon_final": 0.0,
   "n_steps": 3,
-  "save_checkpoints": true,
+  "save_checkpoints": false,
   "use_double": true,
   "use_dueling": true,
   "use_dense": "factorized_noisy",
@@ -26,27 +26,12 @@
   "random_seed": 4321,
   "runs": [
     {
-      "env": "PongNoFrameskip-v4",
+      "env": "MontezumaRevengeNoFrameskip-v4",
       "run_name": "rainbow",
       "train_frames": 5000000
     },
     {
-      "env": "MontezumaRevengeFrameskip-v4",
-      "run_name": "rainbow",
-      "train_frames": 5000000
-    },
-    {
-      "env": "FreewayNoFrameskip-v4",
-      "run_name": "rainbow",
-      "train_frames": 5000000
-    },
-    {
-      "env": "SpaceInvadersFrameskip-v4",
-      "run_name": "rainbow",
-      "train_frames": 5000000
-    },
-    {
-      "env": "GopherNoFrameskip-v4",
+      "env": "SpaceInvadersNoFrameskip-v4",
       "run_name": "rainbow",
       "train_frames": 5000000
     }
