@@ -57,6 +57,7 @@ within the scope of the run JSON object. I will not list possible hyper-paramete
 * `epsilon_start` - The epsilon to start when using the epsilon-greedy algorithm to explore.
 * `epsilon_final` - The epsilon to stop when using the epsilon-greedy algorithm.
 * `save_checkpoints` - Wether to save checkpoints of the model as training is progressing.
+* `random_seed` - The random seed to use with Tensorflow, NumPy, and OpenAI's gym.
 * `run` - an array run JSON objects containing `env` - The, OpenAI gym, environment, `run_name` the name of the run, 
 and `train_frames` and/or `train_reward` the reward to frame to stop training at. Most hyper-parameters described in
 the global scope of our JSON file can be overwritten here, on a per run basis.
@@ -78,3 +79,21 @@ the global scope of our JSON file can be overwritten here, on a per run basis.
 * `use_dense` - takes a string with three possible values, "factorized_noisy", "noisy", or false/null. If 
 "factorized_noisy" the factorized random algorithm will be used, if "noisy" regular random algorithm will be used 
 otherwise a regular `Dense` layer will be used.
+
+### Priority Replay
+
+* `priority_replay` - If this field exists then it is assumed that a priority replay buffer is to be used. This field would
+be a JSON object with the fields `alpha` and `beta` which are priority replay hyper-parameters.
+
+### Categorical DQN
+
+* `categorical` - If this field exists then it is assumed that Categorical DQN will be used. This field would be a JSON 
+object with the fields `n_atoms`, the number of atoms in the distributions, and `v` which is an array with two floats that
+represent Vmin and Vmax in the Distributional RL paper.
+
+## Output run metrics and checkpoints
+
+If the `save_checkpoints` is true then the model is saved anytime a new best reward is reached. It will be saved in a folder
+called checkpoints and a subfolder whose name is the concatenation of the enviornment name and the run name. After a run 
+has completed, in a data folder and a subfolder names as with the checkpoints, a CSV file with the reward of the run
+every step is saved. A plot of the reward is also saved, in a folder named plot.
