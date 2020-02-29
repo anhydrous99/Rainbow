@@ -30,6 +30,24 @@ Still, I will try to get similar results in a couple of games then compare with 
 * Cython
 * NumPy
 * GCC/VSCompiler
+* Joblib
+
+## Setup
+
+I tend to use conda to setup my environment, be sure to have either gcc (for linux & mac) or VC (for windows):
+```
+conda create --name Rainbow python=3.7 tensorflow-gpu pandas matplotlib seaborn opencv cython joblib
+conda activate Rainbow
+pip install gym atari-py
+```
+To build the Cython code:
+```
+python setup.py build_ext --inplace
+```
+After setting up your run settings in `conf.json` to run:
+```
+python run.py
+```
 
 ## Comparison
 
