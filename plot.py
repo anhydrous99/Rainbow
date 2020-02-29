@@ -17,14 +17,12 @@ def save(data, save_path):
 
 def plot(data, save_path, name, runs=1):
     df = pd.DataFrame(data)
+    print(df)
     sns.set_style('darkgrid')
     fix, ax = plt.subplots()
     ax.set_title(name)
     clrs = sns.color_palette('hls', runs)
-    sns.lineplot(x='step', y='rewards_mean', data=df, c=clrs[0])
-    ax.fill_between(df['step'], df['rewards_mean'] - df['rewards_std'],
-                    df['rewards_mean'] + df['rewards_std'], alpha=0.6,
-                    facecolor=clrs[0])
+    sns.lineplot(x='step', y='reward', data=df, c=clrs[0])
     plt.savefig(save_path)
 
 
