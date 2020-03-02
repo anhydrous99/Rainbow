@@ -33,12 +33,13 @@ def main():
     dueling = json_checker(False, conf_json, 'use_dueling')
     priority_replay = json_checker(None, conf_json, 'priority_replay')
     categorical = json_checker(None, conf_json, 'categorical')
+    record = json_checker(False, conf_json, 'record_training')
     runs = conf_json['runs']
 
     def fun(s_args):
         (f_run, f_gamma, f_batch_size, f_replay_size, f_learning_rate, f_sync_target_frames, f_replay_start_size,
          f_epsilon_decay_last_frame, f_epsilon_start, f_epsilon_final, f_n_steps, f_save_checkpoints, f_use_double,
-         f_use_dense, f_dueling, f_priority_replay, f_categorical, f_random_seed, f_index) = s_args
+         f_use_dense, f_dueling, f_priority_replay, f_categorical, f_record, f_random_seed, f_index) = s_args
         env_str = f_run['env']
         n_gamma = json_checker(f_gamma, f_run, 'gamma')
         n_batch_size = json_checker(f_batch_size, f_run, 'batch_size')
@@ -56,6 +57,7 @@ def main():
         n_dueling = json_checker(f_dueling, f_run, 'use_dueling')
         n_priority_replay = json_checker(f_priority_replay, f_run, 'priority_replay')
         n_categorical = json_checker(f_categorical, f_run, 'categorical')
+        n_record = json_checker(f_record, f_run, 'record_training')
         train_frames = None
         train_reward = None
         if 'train_frames' in f_run:
@@ -82,6 +84,7 @@ def main():
               n_dueling,
               n_priority_replay,
               n_categorical,
+              n_record,
               f_random_seed,
               f_index)
         return 1
@@ -92,13 +95,13 @@ def main():
         for index, run in enumerate(runs):
             args.append((run, gamma, batch_size, replay_size, learning_rate, sync_target_frames, replay_start_size,
                          epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps, save_checkpoints, use_double,
-                         use_dense, dueling, priority_replay, categorical, random_seed, index))
+                         use_dense, dueling, priority_replay, categorical, record, random_seed, index))
         Parallel(n_jobs=concurrent_processes, prefer='processes')(delayed(fun)(arg) for arg in args)
     else:
         for index, run in enumerate(runs):
             args = (run, gamma, batch_size, replay_size, learning_rate, sync_target_frames, replay_start_size,
                     epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps, save_checkpoints, use_double,
-                    use_dense, dueling, priority_replay, categorical, random_seed, index)
+                    use_dense, dueling, priority_replay, categorical, record, random_seed, index)
             fun(args)
 
 

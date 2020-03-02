@@ -48,6 +48,10 @@ After setting up your run settings in `conf.json` to run:
 ```
 python run.py
 ```
+If you would like to record, you do need to install some more packages:
+```
+conda install x264=='1!152.20180717' ffmpeg=4.0.2 -c conda-forge
+```
 
 ## Comparison
 

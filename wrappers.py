@@ -1,3 +1,4 @@
+from gym.wrappers import Monitor
 from collections import deque
 import numpy as np
 import gym
@@ -147,8 +148,10 @@ class LazyFrames(object):
         return self._out
 
 
-def make_env(env_name):
+def make_env(env_name, record=False):
     env = gym.make(env_name)
+    if record:
+        env = Monitor(env, './vid', video_callable=lambda episode_id: True, force=True)
     if len(env.observation_space.shape) == 1:
         return env
     env = NoopResetEnv(env)

@@ -26,6 +26,7 @@ def train(env_name='PongNoFrameskip-v4',
           dueling=False,
           priority_replay=None,
           categorical=None,
+          record=False,
           random_seed=None,
           index=0):
     n_atoms = v_min = v_max = None
@@ -55,7 +56,7 @@ def train(env_name='PongNoFrameskip-v4',
     if use_priority_replay:
         print(f'        priority buffer - alpha: {alpha} beta: {beta}')
     print(f'        random_seed: {random_seed}, index: {index}')
-    env = wrappers.make_env(env_name)
+    env = wrappers.make_env(env_name, record)
     if random_seed is not None:
         tf.random.set_seed(random_seed)
         env.seed(random_seed)
@@ -113,6 +114,7 @@ def train(env_name='PongNoFrameskip-v4',
         update_count += 1
         rewards_mean_std.append({'reward': total_rewards[-1:][0],
                                  'step': update_count})
+    env.close()
     plot.directory_check('./plots')
     plot.plot(rewards_mean_std, f'./plots/{f_name}.png', f_name)
     plot.directory_check('./data')
