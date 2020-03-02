@@ -83,6 +83,7 @@ within the scope of the run JSON object. I will not list possible hyper-paramete
 * `run` - an array run JSON objects containing `env` - The, OpenAI gym, environment, `run_name` the name of the run, 
 and `train_frames` and/or `train_reward` the reward to frame to stop training at. Most hyper-parameters described in
 the global scope of our JSON file can be overwritten here, on a per run basis.
+* `record_training` - A true or false where true indicates to record all episodes when training.
 
 ### N-Step DQN
 
