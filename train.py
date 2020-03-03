@@ -57,11 +57,11 @@ def train(env_name='PongNoFrameskip-v4',
     if use_priority_replay:
         print(f'        priority buffer - alpha: {alpha} beta: {beta}')
     print(f'        random_seed: {random_seed}, index: {index}')
-    env = wrappers.make_env(env_name, record)
+    f_name = env_name + "_" + run_name if run_name is not None else env_name
+    env = wrappers.make_env(env_name, record, f_name)
     if random_seed is not None:
         tf.random.set_seed(random_seed)
         env.seed(random_seed)
-    f_name = env_name + "_" + run_name if run_name is not None else env_name
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, epsilon=adam_epsilon)
     agent = Agent(env, replay_size, optimizer, batch_size, n_steps, gamma, use_double, use_dense, dueling,
                   use_categorical, n_atoms, v_min, v_max, train_frames if train_frames is not None else 5000000)

@@ -148,10 +148,10 @@ class LazyFrames(object):
         return self._out
 
 
-def make_env(env_name, record=False):
+def make_env(env_name, record=False, f_name=''):
     env = gym.make(env_name)
     if record:
-        env = Monitor(env, './vid', video_callable=lambda episode_id: True, force=True)
+        env = Monitor(env, f'./vid/{f_name}', video_callable=lambda episode_id: True, force=True)
     if len(env.observation_space.shape) == 1:
         return env
     env = NoopResetEnv(env)
