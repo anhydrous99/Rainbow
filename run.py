@@ -20,6 +20,7 @@ def main():
     batch_size = conf_json['batch_size']
     replay_size = conf_json['replay_size']
     learning_rate = conf_json['learning_rate']
+    adam_epsilon = conf_json['adam_epsilon']
     sync_target_frames = conf_json['sync_target_frames']
     replay_start_size = conf_json['replay_start_size']
     epsilon_decay_last_frame = conf_json['epsilon_decay_last_frame']
@@ -37,14 +38,16 @@ def main():
     runs = conf_json['runs']
 
     def fun(s_args):
-        (f_run, f_gamma, f_batch_size, f_replay_size, f_learning_rate, f_sync_target_frames, f_replay_start_size,
-         f_epsilon_decay_last_frame, f_epsilon_start, f_epsilon_final, f_n_steps, f_save_checkpoints, f_use_double,
-         f_use_dense, f_dueling, f_priority_replay, f_categorical, f_record, f_random_seed, f_index) = s_args
+        (f_run, f_gamma, f_batch_size, f_replay_size, f_learning_rate, f_adam_epsilon, f_sync_target_frames,
+         f_replay_start_size, f_epsilon_decay_last_frame, f_epsilon_start, f_epsilon_final, f_n_steps,
+         f_save_checkpoints, f_use_double, f_use_dense, f_dueling, f_priority_replay, f_categorical, f_record,
+         f_random_seed, f_index) = s_args
         env_str = f_run['env']
         n_gamma = json_checker(f_gamma, f_run, 'gamma')
         n_batch_size = json_checker(f_batch_size, f_run, 'batch_size')
         n_replay_size = json_checker(f_replay_size, f_run, 'replay_size')
         n_learning_rate = json_checker(f_learning_rate, f_run, 'learning_rate')
+        n_adam_epsilon = json_checker(f_adam_epsilon, f_run, 'adam_epsilon')
         n_sync_target_frames = json_checker(f_sync_target_frames, f_run, 'sync_target_frames')
         n_replay_start_size = json_checker(f_replay_start_size, f_run, 'replay_start_size')
         n_epsilon_decay_last_frame = json_checker(f_epsilon_decay_last_frame, f_run, 'epsilon_decay_last_frame')
@@ -70,6 +73,7 @@ def main():
               n_replay_size,
               n_replay_start_size,
               n_learning_rate,
+              n_adam_epsilon,
               n_sync_target_frames,
               n_epsilon_decay_last_frame,
               n_epsilon_start,
@@ -93,15 +97,17 @@ def main():
         concurrent_processes = conf_json['concurrent_processes']
         args = []
         for index, run in enumerate(runs):
-            args.append((run, gamma, batch_size, replay_size, learning_rate, sync_target_frames, replay_start_size,
-                         epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps, save_checkpoints, use_double,
-                         use_dense, dueling, priority_replay, categorical, record, random_seed, index))
+            args.append((run, gamma, batch_size, replay_size, learning_rate, adam_epsilon, sync_target_frames,
+                         replay_start_size, epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps,
+                         save_checkpoints, use_double, use_dense, dueling, priority_replay, categorical, record,
+                         random_seed, index))
         Parallel(n_jobs=concurrent_processes, prefer='processes')(delayed(fun)(arg) for arg in args)
     else:
         for index, run in enumerate(runs):
-            args = (run, gamma, batch_size, replay_size, learning_rate, sync_target_frames, replay_start_size,
-                    epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps, save_checkpoints, use_double,
-                    use_dense, dueling, priority_replay, categorical, record, random_seed, index)
+            args = (run, gamma, batch_size, replay_size, learning_rate, adam_epsilon, sync_target_frames,
+                    replay_start_size, epsilon_decay_last_frame, epsilon_start, epsilon_final, n_steps,
+                    save_checkpoints, use_double, use_dense, dueling, priority_replay, categorical, record,
+                    random_seed, index)
             fun(args)
 
 
