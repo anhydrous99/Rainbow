@@ -137,15 +137,12 @@ class FrameStack(gym.Wrapper):
 class LazyFrames(object):
     def __init__(self, frames):
         self._frames = frames
-        self._out = None
 
     def __array__(self, dtype=None):
-        if self._out is None:
-            self._out = np.concatenate(self._frames, axis=-1)
-            self._frames = None
+        out = np.concatenate(self._frames, axis=-1)
         if dtype is not None:
-            self._out = self._out.astype(dtype)
-        return self._out
+            out = out.astype(dtype)
+        return out
 
 
 def make_env(env_name, record=False, f_name=''):
