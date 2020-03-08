@@ -2,16 +2,16 @@
   "multiprocessing": false,
   "concurrent_processes": 2,
   "gamma": 0.99,
-  "batch_size": 32,
-  "replay_size": 400000,
-  "learning_rate": 0.00001,
-  "adam_epsilon": 0.0000001,
-  "sync_target_frames": 5000,
+  "batch_size": 512,
+  "replay_size": 1000000,
+  "learning_rate": 0.0000625,
+  "adam_epsilon": 0.00015,
+  "sync_target_frames": 32000,
   "replay_start_size": 80000,
   "epsilon_decay_last_frame": 200000,
-  "epsilon_start": 1.0,
-  "epsilon_final": 0.001,
-  "n_steps": 2,
+  "epsilon_start": 0,
+  "epsilon_final": 0,
+  "n_steps": 3,
   "save_checkpoints": true,
   "use_double": true,
   "use_dueling": true,
@@ -30,7 +30,7 @@
     {
       "env": "SpaceInvadersNoFrameskip-v4",
       "run_name": "rainbow",
-      "train_frames": 20000000
+      "train_frames": 200000000
     }
   ]
 }
