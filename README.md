@@ -120,3 +120,9 @@ If the `save_checkpoints` is true then the model is saved anytime a new best rew
 called checkpoints and a sub-folder whose name is the concatenation of the environment name and the run name. After a run 
 has completed, in a data folder and a sub-folder names as with the checkpoints, a CSV file with the reward of the run
 every step is saved. A plot of the reward is also saved, in a folder named plot.
+
+# Show Cases
+## Space Invaders
+[![Space Invaders as played by Rainbow](https://img.youtube.com/v1/w6j5TxZZaIg/0.jpg)](https://www.youtube.com/watch?v=w6j5TxZZaIg)
+## Pong
+[![Pong as played by Rainbow](https://img.youtube.com/v1/zP6QJoJAyIs/0.jpg)](https://www.youtube.com/watch?v=zP6QJoJAyIs)

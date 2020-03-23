@@ -25,7 +25,7 @@
       "n_atoms": 51,
       "v": [-10.0, 10.0]
   },
-  "random_seed": 4321,
+  "random_seed": 1854,
   "runs": [
     {
       "env": "SpaceInvadersNoFrameskip-v4",
