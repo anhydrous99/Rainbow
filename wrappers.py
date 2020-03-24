@@ -51,6 +51,30 @@ class FireResetEnv(gym.Wrapper):
         return obs
 
 
+class EpisodicLifeEnv(gym.Wrapper):
+    def __init__(self, env):
+        gym.Wrapper.__init__(self, env)
+        self.lives = 0
+        self.was_real_done = True
+
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        self.was_real_done = done
+        lives = self.env.unwrapped.ale.lives()
+        if 0 < lives < self.lives:
+            done = True
+        self.lives = lives
+        return obs, reward, done, info
+
+    def reset(self, **kwargs):
+        if self.was_real_done:
+            obs = self.env.reset(**kwargs)
+        else:
+            obs, _, _, _ = self.env.step(0)
+        self.lives = self.env.unwrapped.ale.lives()
+        return obs
+
+
 class MaxAndSkipEnv(gym.Wrapper):
     def __init__(self, env, skip=4):
         gym.Wrapper.__init__(self, env)
@@ -145,8 +169,10 @@ class LazyFrames(object):
         return out
 
 
-def make_env(env_name, record=False, f_name=''):
+def make_env(env_name, record=False, f_name='', episode_life=True):
     env = gym.make(env_name)
+    if episode_life:
+        env = EpisodicLifeEnv(env)
     if record:
         env = Monitor(env, f'./vid/{f_name}', video_callable=lambda episode_id: True, force=True)
     if len(env.observation_space.shape) == 1:
